@@ -231,6 +231,9 @@ func TestSwaggerUI_NotRegisteredWhenDisabled(t *testing.T) {
 }
 
 func TestHealthLiveP95Under100ms(t *testing.T) {
+	if testing.Short() {
+		t.Skip("timing threshold is environment-dependent; skipped with -short")
+	}
 	if os.Getenv("CI") != "" {
 		t.Skip("timing threshold is environment-dependent; run locally or use benchmarks")
 	}
