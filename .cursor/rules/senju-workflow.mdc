@@ -1,0 +1,23 @@
+---
+description: Branching, PR policy, and merge gates for senju (from docs/contributing.md)
+alwaysApply: true
+---
+
+# Workflow and PRs
+
+- Branch from `main`. One primary issue per branch.
+- Branch names: `feature/<issue>-topic`, `task/<issue>-topic`, `bugfix/<issue>-topic`.
+- Each PR must link exactly one primary issue, use the repo PR template fully, include **test evidence** and **rollback notes**, and stay scoped (no mixed unrelated changes).
+
+## Merge gates (before merge)
+
+1. Lint passes.
+2. Unit tests pass.
+3. Integration tests pass when the change touches those areas.
+4. OpenAPI/schema validation passes for API changes.
+5. Security scan: no unresolved **critical** findings.
+6. At least one reviewer approval.
+
+## Branch protection (target `main`)
+
+PR required; ≥1 approval; conversations resolved; required checks green; stale approvals dismissed; no direct pushes to `main`.

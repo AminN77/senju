@@ -3,7 +3,7 @@ proposals/
 .DS_Store
 .env
 
-# Cursor: ignore local editor state but keep shared project rules
+# Cursor: do not commit local workspace/cache; do commit .cursor/rules/ (team + tools like CodeRabbit)
 .cursor/*
 !.cursor/rules/
 !.cursor/rules/**

@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# https://docs.coderabbit.ai/getting-started/yaml-configuration
+#
+# CodeRabbit reads this from the branch under review. Tune profile and path hints
+# for Senju (Go backend, docs/adr, OpenAPI under backend/openapi).
+
+language: "en-US"
+early_access: false
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  fortune: false
+  review_status: true
+  review_details: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "backend/**/*.go"
+      instructions: |
+        Follow docs/backend-engineering.md and relevant ADRs in docs/adr/.
+        Prefer small packages, explicit errors, tests for non-trivial logic, and
+        OpenAPI/backend route alignment when HTTP or openapi/ changes.
+    - path: "docs/**/*.md"
+      instructions: |
+        Keep ADRs and setup docs consistent with actual commands and service ports.
+
+chat:
+  auto_reply: true
