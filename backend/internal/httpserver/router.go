@@ -22,7 +22,6 @@ type ReadinessChecker interface {
 
 // Options configures routes and dependencies.
 type Options struct {
-	Log       zerolog.Logger
 	Readiness ReadinessChecker
 	Version   VersionInfo
 	// EnableSwaggerUI registers GET /docs (Swagger UI). Should be false in Gin release mode (e.g. production).
@@ -52,8 +51,9 @@ func Register(r *gin.Engine, opts Options) {
 	if opts.Metrics != nil {
 		r.GET("/metrics", gin.WrapH(opts.Metrics))
 	}
+	registerOpenAPISpecRoute(r)
 	if opts.EnableSwaggerUI {
-		registerOpenAPIRoutes(r)
+		registerSwaggerUIRoute(r)
 	}
 }
 

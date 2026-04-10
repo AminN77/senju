@@ -22,7 +22,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const readHeaderTimeout = 10 * time.Second
+const (
+	readHeaderTimeout = 10 * time.Second
+	readTimeout       = 30 * time.Second
+	writeTimeout      = 30 * time.Second
+	idleTimeout       = 120 * time.Second
+	maxHeaderBytes    = 1 << 20 // 1 MiB
+)
 
 // run loads configuration, builds the HTTP handler, serves until SIGINT/SIGTERM, then shuts down gracefully.
 func run() error {
@@ -36,7 +42,10 @@ func run() error {
 	log := logging.New(cfg.LogLevel)
 	log.Info().Str("gin_mode", gin.Mode()).Msg("gin mode")
 
-	runner := newReadinessRunner(cfg)
+	runner := healthcheck.NewRunner()
+	if err := registerReadinessProbes(runner, cfg, httpget.DefaultClient()); err != nil {
+		return err
+	}
 	promRegistry := metrics.NewRegistry()
 	engine := newEngine(log, runner, versionInfo(), promRegistry)
 	addr := listenAddr(cfg.APIPort)
@@ -44,7 +53,11 @@ func run() error {
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           engine,
+		ReadTimeout:       readTimeout,
 		ReadHeaderTimeout: readHeaderTimeout,
+		WriteTimeout:      writeTimeout,
+		IdleTimeout:       idleTimeout,
+		MaxHeaderBytes:    maxHeaderBytes,
 	}
 
 	errCh := make(chan error, 1)
@@ -100,18 +113,11 @@ func listenAddr(port int) string {
 	return ":" + strconv.Itoa(port)
 }
 
-func newReadinessRunner(cfg config.Config) *healthcheck.Runner {
-	r := healthcheck.NewRunner()
-	registerReadinessProbes(r, cfg, httpget.DefaultClient())
-	return r
-}
-
 func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(httpserver.RequestLogger(log))
 	httpserver.Register(r, httpserver.Options{
-		Log:             log,
 		Readiness:       readiness,
 		Version:         ver,
 		EnableSwaggerUI: gin.Mode() != gin.ReleaseMode,

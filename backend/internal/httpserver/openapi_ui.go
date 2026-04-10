@@ -12,8 +12,13 @@ import (
 //go:embed swagger_ui.html
 var swaggerUIPage []byte
 
-func registerOpenAPIRoutes(r *gin.Engine) {
+// registerOpenAPISpecRoute exposes the embedded OpenAPI document (always available for tooling/clients).
+func registerOpenAPISpecRoute(r *gin.Engine) {
 	r.GET("/openapi.yaml", handleOpenAPISpec)
+}
+
+// registerSwaggerUIRoute exposes interactive docs; use only in non-release Gin mode.
+func registerSwaggerUIRoute(r *gin.Engine) {
 	r.GET("/docs", handleSwaggerUI)
 }
 

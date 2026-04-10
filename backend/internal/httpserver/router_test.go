@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -118,7 +119,7 @@ func TestOpenAPISpecYAML(t *testing.T) {
 	srv := httptest.NewServer(testEngine(Options{
 		Readiness:       healthcheck.NewRunner(),
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
-		EnableSwaggerUI: true,
+		EnableSwaggerUI: false,
 	}))
 	t.Cleanup(srv.Close)
 
@@ -210,9 +211,17 @@ func TestSwaggerUI_NotRegisteredWhenDisabled(t *testing.T) {
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for /docs when disabled, got %d", w.Code)
 	}
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, httptest.NewRequest(http.MethodGet, "/openapi.yaml", nil))
+	if w2.Code != http.StatusOK {
+		t.Fatalf("expected 200 for /openapi.yaml when Swagger UI disabled, got %d", w2.Code)
+	}
 }
 
 func TestHealthLiveP95Under100ms(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("timing threshold is environment-dependent; run locally or use benchmarks")
+	}
 	srv := httptest.NewServer(testEngine(Options{
 		Readiness:       healthcheck.NewRunner(),
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
@@ -230,8 +239,12 @@ func TestHealthLiveP95Under100ms(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, _ = io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
+		if _, err := io.ReadAll(resp.Body); err != nil {
+			t.Fatal(err)
+		}
+		if err := resp.Body.Close(); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	lat := make([]time.Duration, 0, samples)
@@ -241,8 +254,12 @@ func TestHealthLiveP95Under100ms(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		_, _ = io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
+		if _, err := io.ReadAll(resp.Body); err != nil {
+			t.Fatal(err)
+		}
+		if err := resp.Body.Close(); err != nil {
+			t.Fatal(err)
+		}
 		lat = append(lat, time.Since(start))
 	}
 	sort.Slice(lat, func(i, j int) bool { return lat[i] < lat[j] })

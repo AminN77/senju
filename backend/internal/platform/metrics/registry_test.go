@@ -54,8 +54,13 @@ func TestWithCollector(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body, _ := io.ReadAll(resp.Body)
-	_ = resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := resp.Body.Close(); err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(string(body), "senju_metrics_test_probe_total") {
 		t.Fatal("custom counter not exposed")
 	}
