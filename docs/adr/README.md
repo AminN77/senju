@@ -13,3 +13,4 @@ This directory contains architecture decision records for senju.
 - [ADR-0001: Queue system strategy (NATS first)](./0001-queue-system-strategy.md) - `Accepted`
 - [ADR-0002: Database split (PostgreSQL + ClickHouse)](./0002-database-split-postgres-clickhouse.md) - `Accepted`
 - [ADR-0003: Workflow orchestration strategy (custom worker queue first)](./0003-workflow-orchestration-strategy.md) - `Accepted`
+- [ADR-0004: HTTP API framework (Gin) and control-plane contracts](./0004-http-api-framework.md) - `Accepted`

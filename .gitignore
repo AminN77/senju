@@ -1,5 +1,9 @@
 proposals/
-/.idea/
+.idea/
 .DS_Store
 .env
-.cursor/
+
+# Cursor: ignore local editor state but keep shared project rules
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**

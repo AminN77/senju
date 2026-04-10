@@ -7,6 +7,15 @@
 - Start local stack: `docker compose up -d --build`
 - View setup and verification: `docs/setup.md`
 
+## HTTP API (skeleton)
+
+- **Backend standards:** `docs/backend-engineering.md` (Uber style guide, linting, tests, concurrency)
+- **Stack:** Go + **Gin**, REST, OpenAPI (`docs/adr/0004-http-api-framework.md`)
+- `GET /health/live` — liveness
+- `GET /health/ready` — readiness (Postgres, ClickHouse, MinIO, NATS — aligned with ADRs and the platform proposal)
+- `GET /version` — JSON build metadata
+- OpenAPI: `backend/openapi/openapi.yaml`
+
 ## Engineering governance
 
 - Contribution standards: `docs/contributing.md`

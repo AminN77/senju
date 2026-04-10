@@ -1,11 +1,17 @@
-FROM golang:1.24.2-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod ./
+COPY go.mod go.sum ./
 COPY cmd ./cmd
+COPY internal ./internal
+COPY openapi ./openapi
 
-RUN go build -o /bin/senju-api ./cmd/api
+ARG VERSION=0.1.0
+ARG COMMIT=unknown
+ARG BUILD_TIME=unknown
+
+RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}" -o /bin/senju-api ./cmd/api
 
 FROM alpine:3.21
 

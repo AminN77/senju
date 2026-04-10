@@ -3,9 +3,18 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        VERSION: "0.1.0"
+        COMMIT: "${GIT_COMMIT:-unknown}"
+        BUILD_TIME: "${BUILD_TIME:-unknown}"
     container_name: senju-api
     env_file:
       - .env
+    environment:
+      POSTGRES_HOST: postgres
+      CLICKHOUSE_HTTP_URL: http://clickhouse:8123
+      MINIO_HEALTH_URL: http://minio:9000/minio/health/live
+      NATS_ADDR: nats:4222
     ports:
       - "${API_PORT:-8080}:8080"
     depends_on:
@@ -18,7 +27,7 @@ services:
       nats:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "-qO", "-", "http://localhost:8080/"]
+      test: ["CMD", "wget", "-qO", "-", "http://localhost:8080/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5
