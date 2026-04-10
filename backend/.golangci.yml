@@ -1,6 +1,6 @@
 # golangci-lint configuration — aligns with docs/backend-engineering.md
 # and https://github.com/uber-go/guide/blob/master/style.md
-# Reference: https://golangci-lint.run/configuration/
+# Reference: https://golangci-lint.run/configuration/ (schema v2)
 
 version: "2"
 
@@ -25,6 +25,11 @@ linters:
     - unconvert
     - unused
     - wastedassign
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
 
 formatters:
   enable:
@@ -33,7 +38,3 @@ formatters:
 
 issues:
   max-same-issues: 0
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gosec
