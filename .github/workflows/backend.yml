@@ -12,6 +12,22 @@ defaults:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: senju
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d senju"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_DSN: postgres://postgres:postgres@localhost:5432/senju?sslmode=disable
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +44,8 @@ jobs:
           args: --timeout=5m
 
       - name: Go test (race detector)
-        run: go test -race ./...
+        # Serialize packages so Postgres integration tests (migrations + job repo) do not contend on one DB.
+        run: go test -race -p 1 ./...
 
       - name: Go vet
         run: go vet ./...
