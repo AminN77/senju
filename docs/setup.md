@@ -50,6 +50,10 @@ go run ./cmd/migrate up
 
 Use the same environment variables as in `.env` (`POSTGRES_*` or `POSTGRES_DSN`) so the migrate command targets your Compose Postgres instance.
 
+## FASTQ upload metadata API
+
+After migrations and with Postgres reachable, the API can register FASTQ ingestion jobs. See [docs/api/fastq-upload.md](./api/fastq-upload.md).
+
 ## Verification commands
 
 - API:

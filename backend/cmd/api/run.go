@@ -15,10 +15,13 @@ import (
 	"github.com/AminN77/senju/backend/internal/config"
 	"github.com/AminN77/senju/backend/internal/healthcheck"
 	"github.com/AminN77/senju/backend/internal/httpserver"
+	"github.com/AminN77/senju/backend/internal/job"
+	jobpostgres "github.com/AminN77/senju/backend/internal/job/postgres"
 	"github.com/AminN77/senju/backend/internal/platform/logging"
 	"github.com/AminN77/senju/backend/internal/platform/metrics"
 	"github.com/AminN77/senju/backend/internal/probe/httpget"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
 )
 
@@ -47,7 +50,24 @@ func run() error {
 		return err
 	}
 	promRegistry := metrics.NewRegistry()
-	engine := newEngine(log, runner, versionInfo(), promRegistry)
+
+	var jobRepo job.Repository
+	var pgPool *pgxpool.Pool
+	if cfg.PostgresDSN != "" {
+		pool, err := pgxpool.New(context.Background(), cfg.PostgresDSN)
+		if err != nil {
+			return fmt.Errorf("postgres pool: %w", err)
+		}
+		pgPool = pool
+		jobRepo = jobpostgres.NewRepository(pool)
+	}
+	defer func() {
+		if pgPool != nil {
+			pgPool.Close()
+		}
+	}()
+
+	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo)
 	addr := listenAddr(cfg.APIPort)
 
 	srv := &http.Server{
@@ -113,7 +133,7 @@ func listenAddr(port int) string {
 	return ":" + strconv.Itoa(port)
 }
 
-func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry) *gin.Engine {
+func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(httpserver.RequestLogger(log))
@@ -122,6 +142,7 @@ func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver ht
 		Version:         ver,
 		EnableSwaggerUI: gin.Mode() != gin.ReleaseMode,
 		Metrics:         prom.Handler(),
+		Jobs:            jobs,
 	})
 	return r
 }
