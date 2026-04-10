@@ -1,0 +1,4 @@
+proposals/
+/.idea/
+.DS_Store
+.env

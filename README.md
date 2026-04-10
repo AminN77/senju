@@ -1,6 +1,12 @@
 # senju
  Genomic Data Processing &amp; Variant Analysis Platform
 
+## Quick start
+
+- Copy env template: `cp .env.example .env`
+- Start local stack: `docker compose up -d --build`
+- View setup and verification: `docs/setup.md`
+
 ## Engineering governance
 
 - Contribution standards: `docs/contributing.md`
