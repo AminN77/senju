@@ -1,0 +1,19 @@
+---
+description: Quality bar, definition of done, and secrets handling for senju
+alwaysApply: true
+---
+
+# Quality and definition of done
+
+- Map every change to explicit acceptance criteria; verify **functional** and **non-functional** requirements.
+- New behavior needs tests, or a short documented rationale if tests are impractical.
+- Update docs with behavior changes.
+
+## Definition of done
+
+Work is complete only when: acceptance criteria met; required checks pass; test evidence on the PR; rollback documented; docs updated.
+
+## Security and secrets
+
+- Never commit secrets, credentials, or private keys; use env vars and local secret tooling.
+- If exposure is suspected, rotate credentials and report.

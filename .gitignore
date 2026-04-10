@@ -1,4 +1,9 @@
 proposals/
-/.idea/
+.idea/
 .DS_Store
 .env
+
+# Cursor: do not commit local workspace/cache; do commit .cursor/rules/ (team + tools like CodeRabbit)
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**

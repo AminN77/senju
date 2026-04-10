@@ -1,0 +1,24 @@
+---
+description: Strict Go backend standards for senju (Uber style, tests, performance)
+globs: backend/**/*.go
+alwaysApply: false
+---
+
+# Backend rules (Senju)
+
+Follow **`docs/backend-engineering.md`** on every change. Mandatory style baseline: **[Uber Go Style Guide](https://github.com/uber-go/guide/blob/master/style.md)**.
+
+## Non-negotiables
+
+- **Lint:** `golangci-lint` must pass (`backend/.golangci.yml`). Run from `backend/`: `golangci-lint run ./...`
+- **Tests:** `go test -race ./...` before merge; add table tests; **benchmark hot paths** when touching performance-critical code.
+- **Concurrency:** no unbounded fire-and-forget goroutines; wait on shutdown; propagate `context`; see Uber sections on goroutines.
+- **Dependencies:** prefer libraries with strong benchmarks/maintenance; justify new deps in PRs.
+- **Errors:** wrap with `%w` where appropriate; never ignore `err` without explicit handling.
+
+## Patterns
+
+- Interfaces at package boundaries; **functional options** for complex constructors when it helps.
+- Prefer **stdlib** when performance/clarity match; profile before micro-optimizing.
+
+When unsure, cite Uber guide + `docs/backend-engineering.md` in review.

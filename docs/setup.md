@@ -42,7 +42,10 @@ This setup bootstraps the core local development services:
 ## Verification commands
 
 - API:
-  - `curl http://localhost:8080/`
+  - `curl http://localhost:8080/health/live`
+  - `curl http://localhost:8080/health/ready` (expects 200 when dependencies are reachable)
+  - `curl http://localhost:8080/version`
+  - OpenAPI document: `backend/openapi/openapi.yaml`
 - Postgres:
   - `docker compose exec postgres pg_isready -U ${POSTGRES_USER:-senju} -d ${POSTGRES_DB:-senju}`
 - ClickHouse:

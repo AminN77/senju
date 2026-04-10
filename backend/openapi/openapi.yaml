@@ -1,0 +1,117 @@
+openapi: 3.0.3
+info:
+  title: Senju API
+  description: |
+    Genomic Data Platform control-plane HTTP API (REST).
+
+    Implementation uses **Go** and **Gin** per the project proposal (Fiber/Gin) and **ADR-0004**.
+    Readiness checks reflect **PostgreSQL**, **ClickHouse**, **MinIO**, and **NATS** per **ADR-0001–0003**
+    and the approved architecture (metadata in Postgres, analytics in ClickHouse, object storage in MinIO, queue on NATS).
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080
+    description: Local development
+tags:
+  - name: Info
+    description: Service identity and build metadata
+  - name: Health
+    description: Liveness and readiness probes for orchestration
+  - name: Observability
+    description: Prometheus metrics for monitoring
+paths:
+  /:
+    get:
+      tags:
+        - Info
+      summary: API root
+      description: Short plaintext identifier for the running service.
+      operationId: getRoot
+      responses:
+        "200":
+          description: Service identifier
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "senju api\n"
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: Liveness probe
+      description: Returns 200 if the process is running. Used for container orchestration.
+      operationId: getHealthLive
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "ok\n"
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness probe
+      description: Returns 200 when dependencies are reachable; 503 otherwise.
+      operationId: getHealthReady
+      responses:
+        "200":
+          description: Dependencies are ready
+          content:
+            text/plain:
+              schema:
+                type: string
+        "503":
+          description: One or more dependencies are not ready
+          content:
+            text/plain:
+              schema:
+                type: string
+  /version:
+    get:
+      tags:
+        - Info
+      summary: Build metadata
+      operationId: getVersion
+      responses:
+        "200":
+          description: Version information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionInfo"
+  /metrics:
+    get:
+      tags:
+        - Observability
+      summary: Prometheus metrics
+      description: OpenMetrics / Prometheus text exposition (runtime, process, build).
+      operationId: getMetrics
+      responses:
+        "200":
+          description: Prometheus exposition format
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  schemas:
+    VersionInfo:
+      type: object
+      required:
+        - service
+        - version
+        - commit
+        - build_time
+      properties:
+        service:
+          type: string
+          example: senju-api
+        version:
+          type: string
+        commit:
+          type: string
+        build_time:
+          type: string

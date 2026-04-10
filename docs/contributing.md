@@ -2,6 +2,10 @@
 
 This project follows a delivery standard focused on reproducibility, quality, and safe releases.
 
+## Backend (Go)
+
+Strict standards, testing, benchmarks, concurrency rules, linting, and library selection criteria are defined in **`docs/backend-engineering.md`**. All Go changes must comply with the **[Uber Go Style Guide](https://github.com/uber-go/guide/blob/master/style.md)** and pass **`golangci-lint`** (`backend/.golangci.yml`) and **`go test -race ./...`** in `backend/`.
+
 ## Branching and naming
 
 - Create branches from `main`.
