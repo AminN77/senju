@@ -39,6 +39,17 @@ This setup bootstraps the core local development services:
    docker compose logs -f --tail=100
    ```
 
+## Database migrations
+
+After Postgres is up, apply SQL migrations so the `jobs` metadata table exists (see [docs/data/jobs.md](./data/jobs.md)):
+
+```bash
+cd backend
+go run ./cmd/migrate up
+```
+
+Use the same environment variables as in `.env` (`POSTGRES_*` or `POSTGRES_DSN`) so the migrate command targets your Compose Postgres instance.
+
 ## Verification commands
 
 - API:
