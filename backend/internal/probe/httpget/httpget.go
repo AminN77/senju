@@ -35,7 +35,7 @@ func New(name, url string, client *http.Client) healthcheck.Probe {
 func (p *Probe) Name() string { return p.name }
 
 // Check implements [healthcheck.Probe].
-func (p *Probe) Check(ctx context.Context) error {
+func (p *Probe) Check(ctx context.Context) (err error) {
 	if p.url == "" {
 		return fmt.Errorf("url not configured")
 	}
@@ -48,8 +48,13 @@ func (p *Probe) Check(ctx context.Context) error {
 		return err
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		_ = resp.Body.Close()
+		// Drain remaining body so the underlying connection can be reused.
+		if _, drainErr := io.Copy(io.Discard, resp.Body); drainErr != nil && err == nil {
+			err = fmt.Errorf("drain body: %w", drainErr)
+		}
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("close body: %w", closeErr)
+		}
 	}()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status %d", resp.StatusCode)
