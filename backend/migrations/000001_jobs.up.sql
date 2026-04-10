@@ -1,7 +1,5 @@
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-CREATE TABLE jobs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE public.jobs (
+    id UUID PRIMARY KEY,
     status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'succeeded', 'failed', 'cancelled')),
     stage TEXT NOT NULL,
     input_ref JSONB,
@@ -12,11 +10,11 @@ CREATE TABLE jobs (
     completed_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_jobs_created_at ON jobs (created_at DESC);
+CREATE INDEX idx_jobs_created_at ON public.jobs (created_at DESC);
 
-CREATE INDEX idx_jobs_status_active ON jobs (status) WHERE status IN ('pending', 'running');
+CREATE INDEX idx_jobs_status_active ON public.jobs (status) WHERE status IN ('pending', 'running');
 
-CREATE OR REPLACE FUNCTION jobs_set_updated_at()
+CREATE OR REPLACE FUNCTION public.jobs_set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = now();
@@ -25,6 +23,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trg_jobs_updated_at
-    BEFORE UPDATE ON jobs
+    BEFORE UPDATE ON public.jobs
     FOR EACH ROW
-    EXECUTE FUNCTION jobs_set_updated_at();
+    EXECUTE FUNCTION public.jobs_set_updated_at();

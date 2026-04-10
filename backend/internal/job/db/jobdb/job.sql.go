@@ -12,7 +12,8 @@ import (
 )
 
 const createJob = `-- name: CreateJob :one
-INSERT INTO jobs (
+INSERT INTO public.jobs (
+    id,
     status,
     stage,
     input_ref,
@@ -20,12 +21,13 @@ INSERT INTO jobs (
     started_at,
     completed_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7
 )
 RETURNING id, status, stage, input_ref, output_ref, created_at, updated_at, started_at, completed_at
 `
 
 type CreateJobParams struct {
+	ID          pgtype.UUID        `json:"id"`
 	Status      string             `json:"status"`
 	Stage       string             `json:"stage"`
 	InputRef    []byte             `json:"input_ref"`
@@ -36,6 +38,7 @@ type CreateJobParams struct {
 
 func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, error) {
 	row := q.db.QueryRow(ctx, createJob,
+		arg.ID,
 		arg.Status,
 		arg.Stage,
 		arg.InputRef,
@@ -60,7 +63,7 @@ func (q *Queries) CreateJob(ctx context.Context, arg CreateJobParams) (Job, erro
 
 const getJobByID = `-- name: GetJobByID :one
 SELECT id, status, stage, input_ref, output_ref, created_at, updated_at, started_at, completed_at
-FROM jobs
+FROM public.jobs
 WHERE id = $1
 `
 
@@ -82,7 +85,7 @@ func (q *Queries) GetJobByID(ctx context.Context, id pgtype.UUID) (Job, error) {
 }
 
 const updateJob = `-- name: UpdateJob :one
-UPDATE jobs
+UPDATE public.jobs
 SET status = $2,
     stage = $3,
     started_at = COALESCE($4, started_at),

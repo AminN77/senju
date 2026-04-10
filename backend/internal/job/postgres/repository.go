@@ -21,7 +21,8 @@ func NewRepository(pool *pgxpool.Pool) *Repository {
 
 // Create implements [job.Repository].
 func (r *Repository) Create(ctx context.Context, p job.CreateParams) (*job.Job, error) {
-	row, err := r.q.CreateJob(ctx, mapCreateParams(p))
+	id := uuid.New()
+	row, err := r.q.CreateJob(ctx, mapCreateParams(id, p))
 	if err != nil {
 		return nil, err
 	}

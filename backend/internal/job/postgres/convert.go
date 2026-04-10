@@ -76,8 +76,9 @@ func mapUpdateParams(id uuid.UUID, p job.UpdateParams) jobdb.UpdateJobParams {
 	}
 }
 
-func mapCreateParams(p job.CreateParams) jobdb.CreateJobParams {
+func mapCreateParams(id uuid.UUID, p job.CreateParams) jobdb.CreateJobParams {
 	arg := jobdb.CreateJobParams{
+		ID:     uuidToPgUUID(id),
 		Status: string(p.Status),
 		Stage:  p.Stage,
 	}
