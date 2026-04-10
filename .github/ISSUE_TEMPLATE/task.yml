@@ -1,0 +1,40 @@
+name: Technical task
+description: Define an implementation task required to deliver roadmap outcomes.
+title: "[Task]: "
+labels:
+  - type:task
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      placeholder: Complete X implementation task to unblock Y.
+    validations:
+      required: true
+  - type: textarea
+    id: deliverables
+    attributes:
+      label: Deliverables
+      placeholder: |
+        - Code/module updates
+        - Documentation updates
+        - Tests
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - Functional: ...
+        - Non-functional: ...
+        - Quality: ...
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and blockers
+      placeholder: Issues, systems, or approvals required.
+    validations:
+      required: false
