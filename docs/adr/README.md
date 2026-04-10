@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADR)
 
-This directory contains architecture decision records for the Genomic Data Platform.
+This directory contains architecture decision records for the senju Genomic Data Processing & Variant Analysis Platform.
 
 ## Status legend
 
