@@ -4,6 +4,8 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -55,16 +57,25 @@ func postgresDSN() string {
 	if d := strings.TrimSpace(os.Getenv("POSTGRES_DSN")); d != "" {
 		return d
 	}
-	host := os.Getenv("POSTGRES_HOST")
+	host := strings.TrimSpace(os.Getenv("POSTGRES_HOST"))
 	if host == "" {
 		return ""
 	}
 	port := getenvDefault("POSTGRES_PORT", "5432")
 	user := getenvDefault("POSTGRES_USER", "senju")
 	pass := os.Getenv("POSTGRES_PASSWORD")
-	db := getenvDefault("POSTGRES_DB", "senju")
-	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		host, port, user, pass, db)
+	dbname := getenvDefault("POSTGRES_DB", "senju")
+
+	u := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(user, pass),
+		Host:   net.JoinHostPort(host, port),
+		Path:   "/" + dbname,
+	}
+	q := u.Query()
+	q.Set("sslmode", "disable")
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 func getenvDefault(key, def string) string {

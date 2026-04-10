@@ -17,6 +17,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// testMetricsHandler returns a real Prometheus handler for Register (required non-nil Metrics).
+func testMetricsHandler() http.Handler {
+	return metrics.NewRegistry().Handler()
+}
+
 func BenchmarkHealthLive(b *testing.B) {
 	b.ReportAllocs()
 	gin.SetMode(gin.ReleaseMode)
@@ -25,6 +30,7 @@ func BenchmarkHealthLive(b *testing.B) {
 		Readiness:       healthcheck.NewRunner(),
 		Version:         VersionInfo{Service: "senju-api", Version: "0", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: false,
+		Metrics:         testMetricsHandler(),
 	})
 	req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
 
@@ -46,6 +52,7 @@ func BenchmarkHealthReady_EmptyRunner(b *testing.B) {
 		Readiness:       healthcheck.NewRunner(),
 		Version:         VersionInfo{Service: "senju-api", Version: "0", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: false,
+		Metrics:         testMetricsHandler(),
 	})
 	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 
@@ -73,6 +80,7 @@ func TestHealthLive(t *testing.T) {
 		Readiness:       healthcheck.NewRunner(),
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: true,
+		Metrics:         testMetricsHandler(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -94,6 +102,7 @@ func TestVersionJSON(t *testing.T) {
 			Service: "senju-api", Version: "1.2.3", Commit: "abc", BuildTime: "now",
 		},
 		EnableSwaggerUI: true,
+		Metrics:         testMetricsHandler(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -120,6 +129,7 @@ func TestOpenAPISpecYAML(t *testing.T) {
 		Readiness:       healthcheck.NewRunner(),
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: false,
+		Metrics:         testMetricsHandler(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -177,6 +187,7 @@ func TestSwaggerUI(t *testing.T) {
 		Readiness:       healthcheck.NewRunner(),
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: true,
+		Metrics:         testMetricsHandler(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -205,6 +216,7 @@ func TestSwaggerUI_NotRegisteredWhenDisabled(t *testing.T) {
 		Readiness:       healthcheck.NewRunner(),
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: false,
+		Metrics:         testMetricsHandler(),
 	})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/docs", nil))
@@ -226,6 +238,7 @@ func TestHealthLiveP95Under100ms(t *testing.T) {
 		Readiness:       healthcheck.NewRunner(),
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: true,
+		Metrics:         testMetricsHandler(),
 	}))
 	t.Cleanup(srv.Close)
 

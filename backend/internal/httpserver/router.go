@@ -7,6 +7,7 @@ package httpserver
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/AminN77/senju/backend/internal/healthcheck"
@@ -26,7 +27,7 @@ type Options struct {
 	Version   VersionInfo
 	// EnableSwaggerUI registers GET /docs (Swagger UI). Should be false in Gin release mode (e.g. production).
 	EnableSwaggerUI bool
-	// Metrics exposes Prometheus text exposition at GET /metrics when non-nil.
+	// Metrics exposes Prometheus text exposition at GET /metrics (required; use platform/metrics Registry.Handler() in production).
 	Metrics http.Handler
 }
 
@@ -39,18 +40,19 @@ type VersionInfo struct {
 }
 
 // Register mounts API routes on the Gin engine (see ADR-0004 and OpenAPI spec).
-// opts.Readiness must be non-nil (use healthcheck.NewRunner() for an empty probe set).
+// opts.Readiness and opts.Metrics must be non-nil (typed-nil interfaces are rejected for Readiness).
 func Register(r *gin.Engine, opts Options) {
-	if opts.Readiness == nil {
+	if isNilReadinessChecker(opts.Readiness) {
 		panic("httpserver: Options.Readiness must not be nil")
+	}
+	if opts.Metrics == nil {
+		panic("httpserver: Options.Metrics must not be nil")
 	}
 	r.GET("/health/live", handleLive)
 	r.GET("/health/ready", handleReady(opts.Readiness))
 	r.GET("/version", handleVersion(opts.Version))
 	r.GET("/", handleRoot)
-	if opts.Metrics != nil {
-		r.GET("/metrics", gin.WrapH(opts.Metrics))
-	}
+	r.GET("/metrics", gin.WrapH(opts.Metrics))
 	registerOpenAPISpecRoute(r)
 	if opts.EnableSwaggerUI {
 		registerSwaggerUIRoute(r)
@@ -100,4 +102,17 @@ func handleVersion(v VersionInfo) gin.HandlerFunc {
 
 func handleRoot(c *gin.Context) {
 	c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte("senju api\n"))
+}
+
+func isNilReadinessChecker(v ReadinessChecker) bool {
+	if v == nil {
+		return true
+	}
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Pointer, reflect.Interface, reflect.Slice, reflect.Map, reflect.Chan, reflect.Func:
+		return rv.IsNil()
+	default:
+		return false
+	}
 }

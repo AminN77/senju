@@ -7,7 +7,7 @@
 
 ## Context
 
-The [Genomic Data Platform Proposal](../../proposals/Genomic%20Data%20Platform%20Proposal.pdf) specifies:
+The platform proposal (stack and milestones are summarized in the repository **README**; a full PDF is not tracked in git under `proposals/`) specifies:
 
 - **Backend:** Go
 - **Framework:** Fiber **or** Gin

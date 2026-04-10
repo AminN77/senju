@@ -34,6 +34,8 @@ func (p *Probe) Check(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_ = conn.Close()
+	if err := conn.Close(); err != nil {
+		return fmt.Errorf("close: %w", err)
+	}
 	return nil
 }
