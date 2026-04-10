@@ -50,3 +50,11 @@ type CreateParams struct {
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 }
+
+// UpdateParams holds mutable job fields for updates. Nil time pointers mean "leave existing value".
+type UpdateParams struct {
+	Status      Status
+	Stage       string
+	StartedAt   *time.Time
+	CompletedAt *time.Time
+}

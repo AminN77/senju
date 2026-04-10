@@ -36,7 +36,7 @@ func run() error {
 
 	args := os.Args[1:]
 	if len(args) < 1 {
-		return fmt.Errorf("usage: migrate <up|down|version|force> [n|version]")
+		return fmt.Errorf("usage: migrate <up [n]|down [n]|version|force <version>>")
 	}
 
 	db, err := sql.Open("postgres", dsn)
@@ -67,14 +67,18 @@ func run() error {
 
 	switch args[0] {
 	case "up":
-		n := -1
-		if len(args) > 1 {
+		hasN := len(args) > 1
+		n := 0
+		if hasN {
 			n, err = strconv.Atoi(args[1])
 			if err != nil {
 				return fmt.Errorf("up: parse n: %w", err)
 			}
+			if n <= 0 {
+				return fmt.Errorf("up: n must be > 0 when provided")
+			}
 		}
-		if n < 0 {
+		if !hasN {
 			err = m.Up()
 		} else {
 			err = m.Steps(n)
@@ -90,14 +94,18 @@ func run() error {
 		return nil
 
 	case "down":
-		n := -1
-		if len(args) > 1 {
+		hasN := len(args) > 1
+		n := 0
+		if hasN {
 			n, err = strconv.Atoi(args[1])
 			if err != nil {
 				return fmt.Errorf("down: parse n: %w", err)
 			}
+			if n <= 0 {
+				return fmt.Errorf("down: n must be > 0 when provided")
+			}
 		}
-		if n < 0 {
+		if !hasN {
 			err = m.Down()
 		} else {
 			err = m.Steps(-n)

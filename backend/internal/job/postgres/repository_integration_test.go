@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/AminN77/senju/backend/internal/job"
+	"github.com/AminN77/senju/backend/internal/testdb"
 	"github.com/AminN77/senju/backend/migrations"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -22,13 +23,18 @@ func TestRepository_CRUD(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration test")
 	}
-	dsn := os.Getenv("POSTGRES_DSN")
-	if dsn == "" {
+	base := os.Getenv("POSTGRES_DSN")
+	if base == "" {
 		t.Skip("POSTGRES_DSN not set")
 	}
 
+	dsn := testdb.NewIsolatedDatabase(t, base)
 	applyMigrations(t, dsn)
-	t.Cleanup(func() { migrateDown(t, dsn) })
+	t.Cleanup(func() {
+		if err := migrateDown(dsn); err != nil {
+			t.Errorf("migrate down: %v", err)
+		}
+	})
 
 	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, dsn)
@@ -66,12 +72,18 @@ func TestRepository_CRUD(t *testing.T) {
 		t.Fatalf("input ref: %s", got.InputRef)
 	}
 
-	updated, err := repo.UpdateStatusStage(ctx, created.ID, job.StatusRunning, "align")
+	updated, err := repo.Update(ctx, created.ID, job.UpdateParams{
+		Status: job.StatusRunning,
+		Stage:  "align",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if updated.Status != job.StatusRunning || updated.Stage != "align" {
 		t.Fatalf("update: %+v", updated)
+	}
+	if !updated.UpdatedAt.After(created.UpdatedAt) {
+		t.Fatalf("expected updated_at to advance: before=%v after=%v", created.UpdatedAt, updated.UpdatedAt)
 	}
 }
 
@@ -103,31 +115,27 @@ func applyMigrations(t *testing.T, dsn string) {
 	}
 }
 
-func migrateDown(t *testing.T, dsn string) {
-	t.Helper()
+func migrateDown(dsn string) error {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		t.Logf("migrate down open: %v", err)
-		return
+		return err
 	}
 	defer func() { _ = db.Close() }()
 	pgDriver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		t.Logf("migrate down driver: %v", err)
-		return
+		return err
 	}
 	src, err := iofs.New(migrations.Files, ".")
 	if err != nil {
-		t.Logf("migrate down source: %v", err)
-		return
+		return err
 	}
 	m, err := migrate.NewWithInstance("iofs", src, "postgres", pgDriver)
 	if err != nil {
-		t.Logf("migrate down new: %v", err)
-		return
+		return err
 	}
 	defer func() { _, _ = m.Close() }()
 	if err := m.Down(); err != nil {
-		t.Logf("migrate down: %v", err)
+		return err
 	}
+	return nil
 }

@@ -37,13 +37,9 @@ func (r *Repository) GetByID(ctx context.Context, id uuid.UUID) (*job.Job, error
 	return rowToJob(row)
 }
 
-// UpdateStatusStage implements [job.Repository].
-func (r *Repository) UpdateStatusStage(ctx context.Context, id uuid.UUID, status job.Status, stage string) (*job.Job, error) {
-	row, err := r.q.UpdateJobStatusStage(ctx, jobdb.UpdateJobStatusStageParams{
-		ID:     uuidToPgUUID(id),
-		Status: string(status),
-		Stage:  stage,
-	})
+// Update implements [job.Repository].
+func (r *Repository) Update(ctx context.Context, id uuid.UUID, p job.UpdateParams) (*job.Job, error) {
+	row, err := r.q.UpdateJob(ctx, mapUpdateParams(id, p))
 	if err != nil {
 		return nil, mapNotFound(err)
 	}

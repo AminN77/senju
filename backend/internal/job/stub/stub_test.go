@@ -26,7 +26,10 @@ func TestStub_CreateGetUpdate(t *testing.T) {
 	if got.Status != job.StatusPending {
 		t.Fatalf("status %q", got.Status)
 	}
-	updated, err := r.UpdateStatusStage(ctx, created.ID, job.StatusRunning, "align")
+	updated, err := r.Update(ctx, created.ID, job.UpdateParams{
+		Status: job.StatusRunning,
+		Stage:  "align",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/AminN77/senju/backend/internal/testdb"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
@@ -34,10 +35,12 @@ func TestMigrateUpDown(t *testing.T) {
 	if testing.Short() {
 		t.Skip("integration test")
 	}
-	dsn := os.Getenv("POSTGRES_DSN")
-	if dsn == "" {
+	base := os.Getenv("POSTGRES_DSN")
+	if base == "" {
 		t.Skip("POSTGRES_DSN not set")
 	}
+
+	dsn := testdb.NewIsolatedDatabase(t, base)
 
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
@@ -78,7 +81,36 @@ func TestMigrateUpDown(t *testing.T) {
 		t.Fatalf("version: got %d want 1", v)
 	}
 
+	var exists bool
+	if err := db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM information_schema.tables
+			WHERE table_schema = 'public' AND table_name = 'jobs'
+		)`).Scan(&exists); err != nil {
+		t.Fatal(err)
+	}
+	if !exists {
+		t.Fatal("jobs table missing after up")
+	}
+
 	if err := m.Down(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		t.Fatalf("down: %v", err)
+	}
+
+	if _, _, err := m.Version(); err == nil {
+		t.Fatal("expected error from Version() after full down")
+	} else if !errors.Is(err, migrate.ErrNilVersion) {
+		t.Fatalf("Version after down: %v", err)
+	}
+
+	if err := db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1 FROM information_schema.tables
+			WHERE table_schema = 'public' AND table_name = 'jobs'
+		)`).Scan(&exists); err != nil {
+		t.Fatal(err)
+	}
+	if exists {
+		t.Fatal("jobs table still exists after down")
 	}
 }

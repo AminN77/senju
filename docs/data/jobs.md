@@ -4,7 +4,7 @@ Transactional **job** rows live in PostgreSQL per [ADR-0002](../adr/0002-databas
 
 ## Schema
 
-The `jobs` table is defined in [backend/migrations/000001_jobs.up.sql](../../backend/migrations/000001_jobs.up.sql):
+The `jobs` table is defined in [backend/migrations/000001_jobs.up.sql](../../backend/migrations/000001_jobs.up.sql). The first revision enables `pgcrypto` (for `gen_random_uuid()`), defines `jobs_set_updated_at()` for the `updated_at` trigger, and tears both down in the paired down migration.
 
 - `id` (UUID, primary key)
 - `status` (`pending` | `running` | `succeeded` | `failed` | `cancelled`)

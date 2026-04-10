@@ -81,22 +81,32 @@ func (q *Queries) GetJobByID(ctx context.Context, id pgtype.UUID) (Job, error) {
 	return i, err
 }
 
-const updateJobStatusStage = `-- name: UpdateJobStatusStage :one
+const updateJob = `-- name: UpdateJob :one
 UPDATE jobs
 SET status = $2,
-    stage = $3
+    stage = $3,
+    started_at = COALESCE($4, started_at),
+    completed_at = COALESCE($5, completed_at)
 WHERE id = $1
 RETURNING id, status, stage, input_ref, output_ref, created_at, updated_at, started_at, completed_at
 `
 
-type UpdateJobStatusStageParams struct {
-	ID     pgtype.UUID `json:"id"`
-	Status string      `json:"status"`
-	Stage  string      `json:"stage"`
+type UpdateJobParams struct {
+	ID          pgtype.UUID        `json:"id"`
+	Status      string             `json:"status"`
+	Stage       string             `json:"stage"`
+	StartedAt   pgtype.Timestamptz `json:"started_at"`
+	CompletedAt pgtype.Timestamptz `json:"completed_at"`
 }
 
-func (q *Queries) UpdateJobStatusStage(ctx context.Context, arg UpdateJobStatusStageParams) (Job, error) {
-	row := q.db.QueryRow(ctx, updateJobStatusStage, arg.ID, arg.Status, arg.Stage)
+func (q *Queries) UpdateJob(ctx context.Context, arg UpdateJobParams) (Job, error) {
+	row := q.db.QueryRow(ctx, updateJob,
+		arg.ID,
+		arg.Status,
+		arg.Stage,
+		arg.StartedAt,
+		arg.CompletedAt,
+	)
 	var i Job
 	err := row.Scan(
 		&i.ID,

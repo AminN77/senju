@@ -10,5 +10,5 @@ import (
 type Repository interface {
 	Create(ctx context.Context, p CreateParams) (*Job, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*Job, error)
-	UpdateStatusStage(ctx context.Context, id uuid.UUID, status Status, stage string) (*Job, error)
+	Update(ctx context.Context, id uuid.UUID, p UpdateParams) (*Job, error)
 }
