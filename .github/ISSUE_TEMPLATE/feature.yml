@@ -1,0 +1,48 @@
+name: Feature request
+description: Define a product or engineering feature with testable outcomes.
+title: "[Feature]: "
+labels:
+  - type:feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for new capabilities. Keep acceptance criteria measurable.
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: What value will this feature deliver?
+      placeholder: Deliver X capability so that Y user can achieve Z.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Include what is in and out of scope.
+      placeholder: |
+        In scope:
+        - ...
+        Out of scope:
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Include functional and non-functional criteria.
+      placeholder: |
+        - Functional: ...
+        - Non-functional: ...
+        - Quality: ...
+    validations:
+      required: true
+  - type: textarea
+    id: test_evidence
+    attributes:
+      label: Test evidence required
+      placeholder: Unit tests, integration tests, logs, screenshots, benchmark output.
+    validations:
+      required: true

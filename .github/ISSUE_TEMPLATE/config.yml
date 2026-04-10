@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project discussion
+    url: https://github.com/AminN77/senju/discussions
+    about: Ask questions or propose broad design ideas before opening an issue.
