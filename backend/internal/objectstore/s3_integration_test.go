@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -37,7 +38,9 @@ func TestS3Store_MultipartRoundTrip(t *testing.T) {
 		t.Skip("S3 endpoint, bucket, and credentials required")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
 	store, err := NewS3(S3Options{
 		Endpoint:     endpoint,
 		Region:       region,
@@ -70,7 +73,8 @@ func TestS3Store_MultipartRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.ContentLength = int64(len(payload))
-	resp, err := http.DefaultClient.Do(req)
+	httpClient := &http.Client{Timeout: 15 * time.Second}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}

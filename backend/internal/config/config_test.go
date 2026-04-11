@@ -102,6 +102,7 @@ func TestLoad_ObjectStoreEnabled(t *testing.T) {
 	t.Setenv("POSTGRES_HOST", "")
 	t.Setenv("POSTGRES_DSN", "")
 	t.Setenv("CLICKHOUSE_HTTP_URL", "")
+	t.Setenv("S3_REGION", "")
 	t.Setenv("S3_ENDPOINT", "http://127.0.0.1:9000")
 	t.Setenv("S3_BUCKET", "test-bucket")
 	t.Setenv("S3_ACCESS_KEY", "access")
