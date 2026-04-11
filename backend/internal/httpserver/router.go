@@ -10,7 +10,9 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/AminN77/senju/backend/internal/api/fastqupload"
 	"github.com/AminN77/senju/backend/internal/healthcheck"
+	"github.com/AminN77/senju/backend/internal/job"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
@@ -29,6 +31,8 @@ type Options struct {
 	EnableSwaggerUI bool
 	// Metrics exposes Prometheus text exposition at GET /metrics (required; use platform/metrics Registry.Handler() in production).
 	Metrics http.Handler
+	// Jobs persists job metadata. If nil, FASTQ metadata routes return 503 (database not configured).
+	Jobs job.Repository
 }
 
 // VersionInfo is returned by GET /version.
@@ -53,6 +57,7 @@ func Register(r *gin.Engine, opts Options) {
 	r.GET("/version", handleVersion(opts.Version))
 	r.GET("/", handleRoot)
 	r.GET("/metrics", gin.WrapH(opts.Metrics))
+	fastqupload.Register(r.Group("/v1/jobs"), opts.Jobs)
 	registerOpenAPISpecRoute(r)
 	if opts.EnableSwaggerUI {
 		registerSwaggerUIRoute(r)

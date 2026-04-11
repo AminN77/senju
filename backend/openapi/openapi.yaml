@@ -18,6 +18,8 @@ tags:
     description: Liveness and readiness probes for orchestration
   - name: Observability
     description: Prometheus metrics for monitoring
+  - name: Ingestion
+    description: Genomic ingestion job metadata (e.g. FASTQ upload tracking)
 paths:
   /:
     get:
@@ -96,6 +98,46 @@ paths:
             text/plain:
               schema:
                 type: string
+  /v1/jobs/fastq-upload/metadata:
+    post:
+      tags:
+        - Ingestion
+      summary: Register FASTQ upload metadata
+      description: |
+        Validates paired-end FASTQ ingestion metadata and persists a `jobs` row (`stage=fastq_upload_queued`).
+        Requires PostgreSQL to be configured; otherwise returns 503.
+      operationId: postFastqUploadMetadata
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FastqUploadMetadataRequest"
+      responses:
+        "201":
+          description: Job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FastqUploadMetadataResponse"
+        "400":
+          description: Malformed JSON or validation failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Persistence failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Database not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
 components:
   schemas:
     VersionInfo:
@@ -115,3 +157,68 @@ components:
           type: string
         build_time:
           type: string
+    FastqUploadMetadataRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - sample_id
+        - r1_uri
+        - r2_uri
+      properties:
+        sample_id:
+          type: string
+          minLength: 1
+          description: Sample identifier for this ingestion job (whitespace-only rejected by handler).
+        r1_uri:
+          type: string
+          minLength: 1
+          description: URI for read 1 (forward) — http(s), s3, or gs.
+        r2_uri:
+          type: string
+          minLength: 1
+          description: URI for read 2 (reverse) — http(s), s3, or gs.
+        library_id:
+          type: string
+        platform:
+          type: string
+        notes:
+          type: string
+    FastqUploadMetadataResponse:
+      type: object
+      required:
+        - job_id
+      properties:
+        job_id:
+          type: string
+          format: uuid
+    FieldError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+          description: Stable code such as required or invalid_uri.
+    ProblemDetails:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldError"
