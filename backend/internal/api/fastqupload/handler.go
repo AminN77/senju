@@ -2,8 +2,10 @@
 package fastqupload
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -101,13 +103,19 @@ func handleCreate(repo job.Repository) gin.HandlerFunc {
 var errTrailingJSON = errors.New("trailing json")
 
 func decodeRequest(c *gin.Context) (Request, error) {
-	var req Request
-	dec := json.NewDecoder(c.Request.Body)
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		return Request{}, err
+	}
+	dec := json.NewDecoder(bytes.NewReader(body))
 	dec.DisallowUnknownFields()
+	var req Request
 	if err := dec.Decode(&req); err != nil {
 		return req, err
 	}
-	if dec.More() {
+	// Decoder.More() is for arrays/objects, not extra top-level values; use input offset.
+	rest := bytes.TrimSpace(body[dec.InputOffset():])
+	if len(rest) > 0 {
 		return req, errTrailingJSON
 	}
 	return req, nil
@@ -126,11 +134,12 @@ func validateRequest(req Request) []problem.FieldError {
 		{"r1_uri", req.R1URI},
 		{"r2_uri", req.R2URI},
 	} {
-		if strings.TrimSpace(pair.raw) == "" {
+		normalized := strings.TrimSpace(pair.raw)
+		if normalized == "" {
 			errs = append(errs, problem.FieldError{Field: pair.field, Message: "required"})
 			continue
 		}
-		if _, err := validateHTTPOrObjectURI(pair.raw); err != nil {
+		if _, err := validateHTTPOrObjectURI(normalized); err != nil {
 			errs = append(errs, problem.FieldError{Field: pair.field, Message: "invalid_uri"})
 		}
 	}

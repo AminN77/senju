@@ -159,6 +159,7 @@ components:
           type: string
     FastqUploadMetadataRequest:
       type: object
+      additionalProperties: false
       required:
         - sample_id
         - r1_uri
@@ -166,12 +167,15 @@ components:
       properties:
         sample_id:
           type: string
-          description: Sample identifier for this ingestion job.
+          minLength: 1
+          description: Sample identifier for this ingestion job (whitespace-only rejected by handler).
         r1_uri:
           type: string
+          minLength: 1
           description: URI for read 1 (forward) — http(s), s3, or gs.
         r2_uri:
           type: string
+          minLength: 1
           description: URI for read 2 (reverse) — http(s), s3, or gs.
         library_id:
           type: string

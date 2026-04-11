@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/AminN77/senju/backend/internal/api/problem"
+	"github.com/AminN77/senju/backend/internal/job"
 	"github.com/AminN77/senju/backend/internal/job/stub"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -36,6 +38,44 @@ func TestPostFastqMetadata_201(t *testing.T) {
 	id, ok := got["job_id"].(string)
 	if !ok || id == "" {
 		t.Fatalf("job_id: %v", got)
+	}
+}
+
+// failingRepo always errors on Create to assert 500 problem+json contract.
+type failingRepo struct{}
+
+func (failingRepo) Create(context.Context, job.CreateParams) (*job.Job, error) {
+	return nil, errors.New("injected persistence failure")
+}
+
+func (failingRepo) GetByID(context.Context, uuid.UUID) (*job.Job, error) {
+	return nil, job.ErrNotFound
+}
+
+func (failingRepo) Update(context.Context, uuid.UUID, job.UpdateParams) (*job.Job, error) {
+	return nil, job.ErrNotFound
+}
+
+func TestPostFastqMetadata_500_RepositoryError(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	Register(r.Group("/v1/jobs"), failingRepo{})
+
+	body := `{"sample_id":"S1","r1_uri":"https://a/x","r2_uri":"https://a/y"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/jobs/fastq-upload/metadata", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var p problem.Problem
+	if err := json.Unmarshal(w.Body.Bytes(), &p); err != nil {
+		t.Fatal(err)
+	}
+	if p.Type != problem.TypeInternalError {
+		t.Fatalf("type %q", p.Type)
 	}
 }
 
@@ -116,6 +156,22 @@ func TestPostFastqMetadata_400_TrailingJSON(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+}
+
+func TestPostFastqMetadata_URIWhitespaceTrimmed(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	Register(r.Group("/v1/jobs"), stub.New())
+
+	body := `{"sample_id":"S1","r1_uri":" s3://bucket/k/r1 ","r2_uri":"s3://bucket/k/r2"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/jobs/fastq-upload/metadata", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
 		t.Fatalf("status %d body %s", w.Code, w.Body.String())
 	}
 }

@@ -39,7 +39,12 @@ func JSON(c *gin.Context, status int, p Problem) {
 
 // Validation writes a deterministic validation error (errors sorted by field).
 func Validation(c *gin.Context, detail string, errs []FieldError) {
-	sort.Slice(errs, func(i, j int) bool { return errs[i].Field < errs[j].Field })
+	sort.SliceStable(errs, func(i, j int) bool {
+		if errs[i].Field != errs[j].Field {
+			return errs[i].Field < errs[j].Field
+		}
+		return errs[i].Message < errs[j].Message
+	})
 	JSON(c, http.StatusBadRequest, Problem{
 		Type:   TypeValidationError,
 		Title:  "Validation failed",

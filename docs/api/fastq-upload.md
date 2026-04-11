@@ -30,8 +30,9 @@ Optional: `library_id`, `platform`, `notes` (non-empty strings are stored in the
 
 ### Errors
 
-- **400** `application/problem+json` — malformed JSON, unknown fields, or validation failures (`errors[]` sorted by `field`).
-- **503** — database not configured for the API process.
+- **400** `application/problem+json` — malformed JSON, unknown fields, or validation failures (`errors[]` sorted by `field`, then `message`).
+- **500** `application/problem+json` — persistence failure when saving the job row.
+- **503** `application/problem+json` — database not configured for the API process.
 
 ## Example
 
