@@ -17,6 +17,7 @@ import (
 	"github.com/AminN77/senju/backend/internal/httpserver"
 	"github.com/AminN77/senju/backend/internal/job"
 	jobpostgres "github.com/AminN77/senju/backend/internal/job/postgres"
+	"github.com/AminN77/senju/backend/internal/objectstore"
 	"github.com/AminN77/senju/backend/internal/platform/logging"
 	"github.com/AminN77/senju/backend/internal/platform/metrics"
 	"github.com/AminN77/senju/backend/internal/probe/httpget"
@@ -67,7 +68,23 @@ func run() error {
 		}
 	}()
 
-	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo)
+	var objStore objectstore.Service
+	if cfg.ObjectStore.Enabled() {
+		s, err := objectstore.NewS3(objectstore.S3Options{
+			Endpoint:     cfg.ObjectStore.Endpoint,
+			Region:       cfg.ObjectStore.Region,
+			Bucket:       cfg.ObjectStore.Bucket,
+			AccessKey:    cfg.ObjectStore.AccessKey,
+			SecretKey:    cfg.ObjectStore.SecretKey,
+			UsePathStyle: cfg.ObjectStore.UsePathStyle,
+		})
+		if err != nil {
+			return fmt.Errorf("object store: %w", err)
+		}
+		objStore = s
+	}
+
+	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo, objStore)
 	addr := listenAddr(cfg.APIPort)
 
 	srv := &http.Server{
@@ -133,7 +150,7 @@ func listenAddr(port int) string {
 	return ":" + strconv.Itoa(port)
 }
 
-func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository) *gin.Engine {
+func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository, store objectstore.Service) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(httpserver.RequestLogger(log))
@@ -143,6 +160,8 @@ func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver ht
 		EnableSwaggerUI: gin.Mode() != gin.ReleaseMode,
 		Metrics:         prom.Handler(),
 		Jobs:            jobs,
+		Log:             log,
+		ObjectStore:     store,
 	})
 	return r
 }

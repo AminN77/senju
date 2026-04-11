@@ -21,6 +21,25 @@ type Config struct {
 	ClickHousePing string
 	MinIOHealthURL string
 	NATSAddr       string
+
+	// ObjectStore configures S3-compatible multipart uploads (e.g. MinIO). See ObjectStoreConfig.Enabled.
+	ObjectStore ObjectStoreConfig
+}
+
+// ObjectStoreConfig holds S3-compatible API settings for presigned multipart uploads.
+// Enabled when Endpoint, Bucket, AccessKey, and SecretKey are all non-empty.
+type ObjectStoreConfig struct {
+	Endpoint     string
+	Region       string
+	Bucket       string
+	AccessKey    string
+	SecretKey    string
+	UsePathStyle bool
+}
+
+// Enabled reports whether object multipart routes should call the object store (vs 503).
+func (o ObjectStoreConfig) Enabled() bool {
+	return o.Endpoint != "" && o.Bucket != "" && o.AccessKey != "" && o.SecretKey != ""
 }
 
 // Load reads configuration from the environment.
@@ -43,6 +62,33 @@ func Load() (Config, error) {
 		chPing = chBase + "/ping"
 	}
 
+	region := strings.TrimSpace(os.Getenv("S3_REGION"))
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	usePathStyle := true
+	if v := strings.TrimSpace(os.Getenv("S3_USE_PATH_STYLE")); v != "" {
+		b, err := strconv.ParseBool(v)
+		if err == nil {
+			usePathStyle = b
+		}
+	}
+
+	accessKey := strings.TrimSpace(os.Getenv("S3_ACCESS_KEY"))
+	if accessKey == "" {
+		accessKey = strings.TrimSpace(os.Getenv("MINIO_ROOT_USER"))
+	}
+	secretKey := strings.TrimSpace(os.Getenv("S3_SECRET_KEY"))
+	if secretKey == "" {
+		secretKey = strings.TrimSpace(os.Getenv("MINIO_ROOT_PASSWORD"))
+	}
+
+	endpoint := strings.TrimSpace(os.Getenv("S3_ENDPOINT"))
+	if endpoint == "" {
+		endpoint = strings.TrimSpace(os.Getenv("MINIO_S3_ENDPOINT"))
+	}
+
 	return Config{
 		APIPort:        port,
 		LogLevel:       os.Getenv("LOG_LEVEL"),
@@ -50,6 +96,14 @@ func Load() (Config, error) {
 		ClickHousePing: chPing,
 		MinIOHealthURL: strings.TrimSpace(os.Getenv("MINIO_HEALTH_URL")),
 		NATSAddr:       strings.TrimSpace(os.Getenv("NATS_ADDR")),
+		ObjectStore: ObjectStoreConfig{
+			Endpoint:     endpoint,
+			Region:       region,
+			Bucket:       strings.TrimSpace(os.Getenv("S3_BUCKET")),
+			AccessKey:    accessKey,
+			SecretKey:    secretKey,
+			UsePathStyle: usePathStyle,
+		},
 	}, nil
 }
 

@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"github.com/AminN77/senju/backend/internal/api/fastqupload"
+	"github.com/AminN77/senju/backend/internal/api/objectupload"
 	"github.com/AminN77/senju/backend/internal/healthcheck"
 	"github.com/AminN77/senju/backend/internal/job"
+	"github.com/AminN77/senju/backend/internal/objectstore"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
@@ -33,6 +35,10 @@ type Options struct {
 	Metrics http.Handler
 	// Jobs persists job metadata. If nil, FASTQ metadata routes return 503 (database not configured).
 	Jobs job.Repository
+	// Log is used for structured request logging and object upload audit lines.
+	Log zerolog.Logger
+	// ObjectStore enables multipart presigned uploads under /v1/objects. If nil, those routes return 503.
+	ObjectStore objectstore.Service
 }
 
 // VersionInfo is returned by GET /version.
@@ -58,6 +64,7 @@ func Register(r *gin.Engine, opts Options) {
 	r.GET("/", handleRoot)
 	r.GET("/metrics", gin.WrapH(opts.Metrics))
 	fastqupload.Register(r.Group("/v1/jobs"), opts.Jobs)
+	objectupload.Register(r.Group("/v1/objects"), opts.ObjectStore, opts.Log)
 	registerOpenAPISpecRoute(r)
 	if opts.EnableSwaggerUI {
 		registerSwaggerUIRoute(r)

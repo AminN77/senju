@@ -96,3 +96,26 @@ func TestLoad_ClickHousePingOnlyWhenBaseSet(t *testing.T) {
 		}
 	})
 }
+
+func TestLoad_ObjectStoreEnabled(t *testing.T) {
+	t.Setenv("API_PORT", "8080")
+	t.Setenv("POSTGRES_HOST", "")
+	t.Setenv("POSTGRES_DSN", "")
+	t.Setenv("CLICKHOUSE_HTTP_URL", "")
+	t.Setenv("S3_REGION", "")
+	t.Setenv("S3_ENDPOINT", "http://127.0.0.1:9000")
+	t.Setenv("S3_BUCKET", "test-bucket")
+	t.Setenv("S3_ACCESS_KEY", "access")
+	t.Setenv("S3_SECRET_KEY", "secret")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.ObjectStore.Enabled() {
+		t.Fatal("expected object store enabled")
+	}
+	if cfg.ObjectStore.Region != "us-east-1" {
+		t.Fatalf("region: got %q", cfg.ObjectStore.Region)
+	}
+}
