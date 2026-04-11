@@ -20,6 +20,8 @@ tags:
     description: Prometheus metrics for monitoring
   - name: Ingestion
     description: Genomic ingestion job metadata (e.g. FASTQ upload tracking)
+  - name: Object storage
+    description: Presigned multipart uploads to S3-compatible storage (e.g. MinIO) for large objects
 paths:
   /:
     get:
@@ -138,6 +140,136 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
+  /v1/objects/multipart:
+    post:
+      tags:
+        - Object storage
+      summary: Start multipart upload
+      description: |
+        Creates an S3 multipart upload and returns the object key, upload ID, and recommended part size (64 MiB).
+        Requires S3 endpoint and bucket configuration; otherwise returns 503.
+      operationId: postObjectMultipartInit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MultipartInitRequest"
+      responses:
+        "201":
+          description: Multipart upload initiated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MultipartInitResponse"
+        "400":
+          description: Malformed JSON or validation failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Object store operation failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Object storage not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+  /v1/objects/multipart/{upload_id}/parts:
+    post:
+      tags:
+        - Object storage
+      summary: Presign multipart part upload
+      description: Returns a presigned PUT URL for one part. Client uploads bytes to that URL, then collects ETag from the response.
+      operationId: postObjectMultipartPresignPart
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PresignPartRequest"
+      responses:
+        "200":
+          description: Presigned URL for the part
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresignPartResponse"
+        "400":
+          description: Malformed JSON or validation failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Presign failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Object storage not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+  /v1/objects/multipart/{upload_id}/complete:
+    post:
+      tags:
+        - Object storage
+      summary: Complete multipart upload
+      description: |
+        Completes the multipart upload with part ETags, verifies the object via HeadObject, and emits an audit log line
+        with object key, size, and ETag.
+      operationId: postObjectMultipartComplete
+      parameters:
+        - name: upload_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MultipartCompleteRequest"
+      responses:
+        "200":
+          description: Object finalized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MultipartCompleteResponse"
+        "400":
+          description: Malformed JSON or validation failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Complete or verification failed
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Object storage not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
 components:
   schemas:
     VersionInfo:
@@ -191,6 +323,105 @@ components:
         job_id:
           type: string
           format: uuid
+    MultipartInitRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - content_type
+      properties:
+        content_type:
+          type: string
+          minLength: 1
+          description: Object Content-Type for the completed object (e.g. application/gzip).
+        filename_hint:
+          type: string
+          description: Optional filename segment used in the generated object key (sanitized server-side).
+    MultipartInitResponse:
+      type: object
+      required:
+        - bucket
+        - object_key
+        - upload_id
+        - part_size_bytes
+      properties:
+        bucket:
+          type: string
+        object_key:
+          type: string
+        upload_id:
+          type: string
+        part_size_bytes:
+          type: integer
+          format: int64
+          description: Recommended part size in bytes (64 MiB).
+    PresignPartRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - object_key
+        - part_number
+      properties:
+        object_key:
+          type: string
+          minLength: 1
+        part_number:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 10000
+    PresignPartResponse:
+      type: object
+      required:
+        - url
+        - expires_at
+      properties:
+        url:
+          type: string
+          format: uri
+        expires_at:
+          type: string
+          description: RFC3339Nano expiry for the presigned URL
+    CompletePart:
+      type: object
+      required:
+        - part_number
+        - etag
+      properties:
+        part_number:
+          type: integer
+          format: int32
+        etag:
+          type: string
+          description: ETag returned by S3 after uploading the part (quoted or unquoted).
+    MultipartCompleteRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - object_key
+        - parts
+      properties:
+        object_key:
+          type: string
+          minLength: 1
+        parts:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CompletePart"
+    MultipartCompleteResponse:
+      type: object
+      required:
+        - object_key
+        - etag
+        - size_bytes
+      properties:
+        object_key:
+          type: string
+        etag:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
     FieldError:
       type: object
       required:

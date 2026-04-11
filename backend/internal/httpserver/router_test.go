@@ -15,6 +15,7 @@ import (
 	"github.com/AminN77/senju/backend/internal/healthcheck"
 	"github.com/AminN77/senju/backend/internal/platform/metrics"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 )
 
 // testMetricsHandler returns a real Prometheus handler for Register (required non-nil Metrics).
@@ -31,6 +32,7 @@ func BenchmarkHealthLive(b *testing.B) {
 		Version:         VersionInfo{Service: "senju-api", Version: "0", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: false,
 		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
 	})
 	req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
 
@@ -53,6 +55,7 @@ func BenchmarkHealthReady_EmptyRunner(b *testing.B) {
 		Version:         VersionInfo{Service: "senju-api", Version: "0", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: false,
 		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
 	})
 	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 
@@ -81,6 +84,7 @@ func TestHealthLive(t *testing.T) {
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: true,
 		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -103,6 +107,7 @@ func TestVersionJSON(t *testing.T) {
 		},
 		EnableSwaggerUI: true,
 		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -130,6 +135,7 @@ func TestOpenAPISpecYAML(t *testing.T) {
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: false,
 		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -161,6 +167,7 @@ func TestMetrics(t *testing.T) {
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: false,
 		Metrics:         reg.Handler(),
+		Log:             zerolog.Nop(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -188,6 +195,7 @@ func TestSwaggerUI(t *testing.T) {
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: true,
 		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -217,6 +225,7 @@ func TestSwaggerUI_NotRegisteredWhenDisabled(t *testing.T) {
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: false,
 		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
 	})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/docs", nil))
@@ -242,6 +251,7 @@ func TestHealthLiveP95Under100ms(t *testing.T) {
 		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
 		EnableSwaggerUI: true,
 		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
 	}))
 	t.Cleanup(srv.Close)
 
