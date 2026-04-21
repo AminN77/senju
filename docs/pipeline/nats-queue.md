@@ -51,3 +51,13 @@ FastQC stage execution worker is implemented in `backend/internal/pipeline/fastq
 - Worker enforces per-job timeout via `context.WithTimeout` (`timeout_seconds` in payload or default config timeout).
 - Worker updates job state to running/succeeded/failed and persists report artifact metadata in `output_ref`.
 - Stage completion log emits `job_id`, `stage`, `exit_code`, and `duration`.
+
+## Alignment stage worker (Issue #11)
+
+BWA + SAMtools alignment worker is implemented in `backend/internal/pipeline/alignment`.
+
+- Queue message payload includes `reference_path`, `read1_path`, `read2_path`, and `output_bam_path` (optional `output_bam_uri`).
+- Worker executes `bwa mem` then `samtools sort`, and persists BAM artifact location + checksum (`checksum_sha256`) in `output_ref`.
+- Stage-level CPU/memory limits are configurable per job (`threads`, `memory_limit_mb`) with safe defaults from worker config.
+- Deterministic output verification is documented and tested: same input/config and output bytes produce same SHA-256 checksum.
+- Stage logs include `job_id`, `stage=alignment`, `exit_code`, and `duration`.

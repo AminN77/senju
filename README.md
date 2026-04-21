@@ -35,3 +35,4 @@
 
 - NATS/JetStream queue package with retry + dead-letter semantics: `docs/pipeline/nats-queue.md`
 - FastQC worker stage implementation: `backend/internal/pipeline/fastqc`
+- BWA + SAMtools alignment worker stage implementation: `backend/internal/pipeline/alignment`
