@@ -16,6 +16,7 @@ import (
 )
 
 const batchSize = 2000
+const scannerBufferBytes = 2 * 1024 * 1024 // 2 MiB guards memory while allowing large multi-sample VCF rows.
 
 const createTableSQL = `
 CREATE TABLE IF NOT EXISTS variants (
@@ -98,8 +99,7 @@ func (l *Loader) LoadVCF(ctx context.Context, datasetID string, r io.Reader) (in
 		return 0, err
 	}
 
-	sc := bufio.NewScanner(r)
-	sc.Buffer(make([]byte, 0, 64*1024), 2*1024*1024)
+	sc := newVCFScanner(r)
 
 	inserted := 0
 	seenInRun := make(map[string]struct{}, 4096)
@@ -140,6 +140,12 @@ func (l *Loader) LoadVCF(ctx context.Context, datasetID string, r io.Reader) (in
 		inserted += n
 	}
 	return inserted, nil
+}
+
+func newVCFScanner(r io.Reader) *bufio.Scanner {
+	sc := bufio.NewScanner(r)
+	sc.Buffer(make([]byte, 0, 64*1024), scannerBufferBytes)
+	return sc
 }
 
 func (l *Loader) flushBatch(ctx context.Context, datasetID string, batch []Variant) (int, error) {
