@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AminN77/senju/backend/internal/api/variantquery"
 	"github.com/AminN77/senju/backend/internal/config"
 	"github.com/AminN77/senju/backend/internal/healthcheck"
 	"github.com/AminN77/senju/backend/internal/httpserver"
@@ -85,7 +86,7 @@ func run() error {
 		objStore = s
 	}
 
-	var variantQuery clickhouse.QueryService
+	var variantQuery variantquery.Service
 	var variantRepo *clickhouse.QueryRepository
 	if cfg.ClickHouseDSN != "" {
 		repo, err := clickhouse.OpenQueryRepository(cfg.ClickHouseDSN)
@@ -93,7 +94,7 @@ func run() error {
 			return fmt.Errorf("clickhouse query repository: %w", err)
 		}
 		variantRepo = repo
-		variantQuery = repo
+		variantQuery = clickhouseVariantQueryAdapter{svc: repo}
 	}
 	defer func() {
 		if variantRepo != nil {
@@ -167,7 +168,7 @@ func listenAddr(port int) string {
 	return ":" + strconv.Itoa(port)
 }
 
-func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository, store objectstore.Service, variants clickhouse.QueryService) *gin.Engine {
+func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository, store objectstore.Service, variants variantquery.Service) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(httpserver.RequestLogger(log))
@@ -182,6 +183,44 @@ func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver ht
 		VariantQuery:    variants,
 	})
 	return r
+}
+
+type clickhouseVariantQueryAdapter struct {
+	svc clickhouse.QueryService
+}
+
+func (a clickhouseVariantQueryAdapter) Query(ctx context.Context, f variantquery.QueryFilters) (variantquery.QueryResult, error) {
+	res, err := a.svc.Query(ctx, clickhouse.QueryFilters{
+		Chromosome:  f.Chromosome,
+		PositionMin: f.PositionMin,
+		PositionMax: f.PositionMax,
+		Gene:        f.Gene,
+		Page:        f.Page,
+		PageSize:    f.PageSize,
+	})
+	if err != nil {
+		return variantquery.QueryResult{}, err
+	}
+	rows := make([]variantquery.QueryRow, 0, len(res.Rows))
+	for _, r := range res.Rows {
+		rows = append(rows, variantquery.QueryRow{
+			Chromosome: r.Chromosome,
+			Position:   r.Position,
+			Ref:        r.Ref,
+			Alt:        r.Alt,
+			Qual:       r.Qual,
+			Filter:     r.Filter,
+			Info:       r.Info,
+			Gene:       r.Gene,
+		})
+	}
+	return variantquery.QueryResult{
+		Rows:     rows,
+		Total:    res.Total,
+		Page:     res.Page,
+		PageSize: res.PageSize,
+		HasNext:  res.HasNext,
+	}, nil
 }
 
 func parseShutdownTimeout(log zerolog.Logger) time.Duration {

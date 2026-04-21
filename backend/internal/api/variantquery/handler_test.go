@@ -10,20 +10,19 @@ import (
 	"testing"
 
 	"github.com/AminN77/senju/backend/internal/api/problem"
-	"github.com/AminN77/senju/backend/internal/variant/clickhouse"
 	"github.com/gin-gonic/gin"
 )
 
 type fakeService struct {
-	gotFilters clickhouse.QueryFilters
-	res        clickhouse.QueryResult
+	gotFilters QueryFilters
+	res        QueryResult
 	err        error
 }
 
-func (f *fakeService) Query(_ context.Context, filters clickhouse.QueryFilters) (clickhouse.QueryResult, error) {
+func (f *fakeService) Query(_ context.Context, filters QueryFilters) (QueryResult, error) {
 	f.gotFilters = filters
 	if f.err != nil {
-		return clickhouse.QueryResult{}, f.err
+		return QueryResult{}, f.err
 	}
 	return f.res, nil
 }
@@ -32,8 +31,8 @@ func TestGetVariants_200(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 	svc := &fakeService{
-		res: clickhouse.QueryResult{
-			Rows: []clickhouse.QueryRow{
+		res: QueryResult{
+			Rows: []QueryRow{
 				{Chromosome: "chr1", Position: 123, Ref: "A", Alt: "G", Filter: "PASS", Info: "GENE=TP53", Gene: "TP53"},
 			},
 			Total:    1,

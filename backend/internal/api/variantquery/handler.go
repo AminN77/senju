@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/AminN77/senju/backend/internal/api/problem"
-	"github.com/AminN77/senju/backend/internal/variant/clickhouse"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,7 +17,38 @@ var safeToken = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
 // Service is the storage-agnostic dependency required by the handler.
 type Service interface {
-	Query(context.Context, clickhouse.QueryFilters) (clickhouse.QueryResult, error)
+	Query(context.Context, QueryFilters) (QueryResult, error)
+}
+
+// QueryFilters controls variant search predicates and pagination.
+type QueryFilters struct {
+	Chromosome  string
+	PositionMin *uint32
+	PositionMax *uint32
+	Gene        string
+	Page        int
+	PageSize    int
+}
+
+// QueryRow is one variant returned by the query service.
+type QueryRow struct {
+	Chromosome string
+	Position   uint32
+	Ref        string
+	Alt        string
+	Qual       *float64
+	Filter     string
+	Info       string
+	Gene       string
+}
+
+// QueryResult is a paginated variant page.
+type QueryResult struct {
+	Rows     []QueryRow
+	Total    int64
+	Page     int
+	PageSize int
+	HasNext  bool
 }
 
 // Register mounts GET /variants on the given /v1 group.
@@ -83,16 +113,7 @@ func handleQuery(svc Service) gin.HandlerFunc {
 		}
 		out := make([]variantOut, 0, len(res.Rows))
 		for _, r := range res.Rows {
-			out = append(out, variantOut{
-				Chromosome: r.Chromosome,
-				Position:   r.Position,
-				Ref:        r.Ref,
-				Alt:        r.Alt,
-				Qual:       r.Qual,
-				Filter:     r.Filter,
-				Info:       r.Info,
-				Gene:       r.Gene,
-			})
+			out = append(out, variantOut(r))
 		}
 		c.JSON(http.StatusOK, response{
 			Data:      out,
@@ -111,7 +132,7 @@ func handleQuery(svc Service) gin.HandlerFunc {
 	}
 }
 
-func parseFilters(c *gin.Context) (clickhouse.QueryFilters, []problem.FieldError) {
+func parseFilters(c *gin.Context) (QueryFilters, []problem.FieldError) {
 	var errs []problem.FieldError
 	chromosome := strings.TrimSpace(c.Query("chromosome"))
 	if chromosome != "" && !safeToken.MatchString(chromosome) {
@@ -147,7 +168,7 @@ func parseFilters(c *gin.Context) (clickhouse.QueryFilters, []problem.FieldError
 		errs = append(errs, problem.FieldError{Field: "page_size", Message: "max_200"})
 	}
 
-	return clickhouse.QueryFilters{
+	return QueryFilters{
 		Chromosome:  chromosome,
 		PositionMin: posMin,
 		PositionMax: posMax,

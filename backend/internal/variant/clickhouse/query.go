@@ -45,7 +45,8 @@ type QueryService interface {
 
 // QueryRepository executes variant queries against ClickHouse.
 type QueryRepository struct {
-	db *sql.DB
+	db     *sql.DB
+	ownsDB bool
 }
 
 // NewQueryRepository builds a query repository from an existing DB handle.
@@ -53,7 +54,7 @@ func NewQueryRepository(db *sql.DB) (*QueryRepository, error) {
 	if db == nil {
 		return nil, errors.New("clickhouse query repository: db is nil")
 	}
-	return &QueryRepository{db: db}, nil
+	return &QueryRepository{db: db, ownsDB: false}, nil
 }
 
 // OpenQueryRepository creates a query repository from a ClickHouse DSN.
@@ -62,12 +63,15 @@ func OpenQueryRepository(dsn string) (*QueryRepository, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewQueryRepository(l.db)
+	return &QueryRepository{db: l.db, ownsDB: true}, nil
 }
 
 // Close releases the underlying ClickHouse connection pool.
 func (r *QueryRepository) Close() error {
 	if r == nil || r.db == nil {
+		return nil
+	}
+	if !r.ownsDB {
 		return nil
 	}
 	return r.db.Close()
