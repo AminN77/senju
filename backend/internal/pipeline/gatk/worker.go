@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/AminN77/senju/backend/internal/job"
+	"github.com/AminN77/senju/backend/internal/pipeline/stagemetrics"
 	"github.com/AminN77/senju/backend/internal/queue"
 	"github.com/google/uuid"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 )
 
@@ -60,36 +60,10 @@ func (ExecRunner) Run(ctx context.Context, name string, args ...string) (int, er
 }
 
 // Metrics exports GATK stage metrics to Prometheus.
-type Metrics struct {
-	duration *prometheus.HistogramVec
-	total    *prometheus.CounterVec
-}
+type Metrics = stagemetrics.Metrics
 
 // NewMetrics returns Prometheus collectors for GATK stage observability.
-func NewMetrics() *Metrics {
-	return &Metrics{
-		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name:    "senju_pipeline_stage_duration_seconds",
-			Help:    "Duration of pipeline stage executions by stage and outcome.",
-			Buckets: prometheus.DefBuckets,
-		}, []string{"stage", "outcome"}),
-		total: prometheus.NewCounterVec(prometheus.CounterOpts{
-			Name: "senju_pipeline_stage_total",
-			Help: "Total pipeline stage executions by stage, outcome, and classified error type.",
-		}, []string{"stage", "outcome", "error_class"}),
-	}
-}
-
-// Collectors returns the metrics collectors for registry registration.
-func (m *Metrics) Collectors() []prometheus.Collector {
-	return []prometheus.Collector{m.duration, m.total}
-}
-
-// Observe records duration and terminal status classification.
-func (m *Metrics) Observe(stage, outcome, errorClass string, duration time.Duration) {
-	m.duration.WithLabelValues(stage, outcome).Observe(duration.Seconds())
-	m.total.WithLabelValues(stage, outcome, errorClass).Inc()
-}
+func NewMetrics() *Metrics { return stagemetrics.New() }
 
 // Config controls GATK worker defaults.
 type Config struct {

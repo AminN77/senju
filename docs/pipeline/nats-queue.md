@@ -72,3 +72,16 @@ GATK variant-calling worker is implemented in `backend/internal/pipeline/gatk`.
 - Stage metrics are exported to Prometheus:
   - `senju_pipeline_stage_duration_seconds` (histogram)
   - `senju_pipeline_stage_total` (counter with `stage/outcome/error_class` labels)
+
+## Pipeline stage observability baseline (Issue #16)
+
+All pipeline stages (`fastqc`, `alignment`, `gatk`) now emit the same Prometheus metric families:
+
+- `senju_pipeline_stage_duration_seconds` (histogram)
+- `senju_pipeline_stage_total` (counter)
+
+Labels are consistent across stages:
+
+- `stage`
+- `outcome` (`success`/`failure`)
+- `error_class` (empty for success; failure classification when available)

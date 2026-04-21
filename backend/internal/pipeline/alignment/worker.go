@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/AminN77/senju/backend/internal/job"
+	"github.com/AminN77/senju/backend/internal/pipeline/stagemetrics"
 	"github.com/AminN77/senju/backend/internal/queue"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -64,14 +65,15 @@ type Config struct {
 
 // Worker runs BWA+SAMtools stage and persists BAM metadata in output_ref.
 type Worker struct {
-	repo   job.Repository
-	runner CommandRunner
-	log    zerolog.Logger
-	cfg    Config
+	repo    job.Repository
+	runner  CommandRunner
+	log     zerolog.Logger
+	cfg     Config
+	metrics *stagemetrics.Metrics
 }
 
 // NewWorker creates an alignment worker with sane defaults.
-func NewWorker(repo job.Repository, runner CommandRunner, log zerolog.Logger, cfg Config) (*Worker, error) {
+func NewWorker(repo job.Repository, runner CommandRunner, log zerolog.Logger, cfg Config, metrics *stagemetrics.Metrics) (*Worker, error) {
 	if repo == nil {
 		return nil, errors.New("alignment worker: repo is nil")
 	}
@@ -87,7 +89,7 @@ func NewWorker(repo job.Repository, runner CommandRunner, log zerolog.Logger, cf
 	if cfg.DefaultMemoryMB <= 0 {
 		cfg.DefaultMemoryMB = 2048
 	}
-	return &Worker{repo: repo, runner: runner, log: log, cfg: cfg}, nil
+	return &Worker{repo: repo, runner: runner, log: log, cfg: cfg, metrics: metrics}, nil
 }
 
 type payload struct {
@@ -145,9 +147,19 @@ func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 
 	status := job.StatusSucceeded
 	stage := StageAlignmentSucceeded
+	outcome := "success"
+	errClass := ""
 	if runErr != nil {
 		status = job.StatusFailed
 		stage = StageAlignmentFailed
+		outcome = "failure"
+		errClass = "tool"
+		if errors.Is(runErr, context.Canceled) || errors.Is(runErr, context.DeadlineExceeded) {
+			errClass = "infrastructure"
+		}
+	}
+	if w.metrics != nil {
+		w.metrics.Observe("alignment", outcome, errClass, duration)
 	}
 
 	outRef, marshalErr := buildOutputRef(exitCode, duration, checksum, p, threads, memMB, runErr)

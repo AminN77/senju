@@ -66,6 +66,10 @@ Create/run/status/output orchestration endpoints are documented in [docs/api/orc
 
 Queue retry/dead-letter behavior and env configuration are documented in [docs/pipeline/nats-queue.md](./pipeline/nats-queue.md).
 
+## Observability baseline
+
+Monitoring/logging stack setup (Prometheus, Loki, Grafana) is documented in [docs/observability.md](./observability.md).
+
 ## Verification commands
 
 - API:
@@ -82,6 +86,10 @@ Queue retry/dead-letter behavior and env configuration are documented in [docs/p
   - Console: `http://localhost:9002`
 - NATS monitoring:
   - `curl http://localhost:8222/varz`
+- Prometheus:
+  - `curl http://localhost:9090/api/v1/targets`
+- Grafana:
+  - `http://localhost:3000` (default from `.env`: `admin` / `admin`)
 
 ## Stop and cleanup
 

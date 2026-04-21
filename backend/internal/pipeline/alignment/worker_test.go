@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +17,8 @@ import (
 
 	"github.com/AminN77/senju/backend/internal/job"
 	"github.com/AminN77/senju/backend/internal/job/stub"
+	"github.com/AminN77/senju/backend/internal/pipeline/stagemetrics"
+	pmetrics "github.com/AminN77/senju/backend/internal/platform/metrics"
 	"github.com/AminN77/senju/backend/internal/queue"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -23,6 +28,57 @@ type fakeRunner struct {
 	mu   sync.Mutex
 	run  func(ctx context.Context, name string, args ...string) (int, error)
 	call []runnerCall
+}
+
+func TestWorkerHandle_ExportsPrometheusMetrics(t *testing.T) {
+	t.Parallel()
+	repo := newRecordingRepo()
+	created, err := repo.Create(context.Background(), job.CreateParams{Status: job.StatusPending, Stage: "queued"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bamPath := filepath.Join(t.TempDir(), "out.bam")
+	stageMetrics := stagemetrics.New()
+	reg := pmetrics.NewRegistry()
+	for _, c := range stageMetrics.Collectors() {
+		reg.MustRegister(c)
+	}
+	runner := &fakeRunner{
+		run: func(_ context.Context, name string, _ ...string) (int, error) {
+			if name == "samtools" {
+				if err := os.WriteFile(bamPath, []byte("bam"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			return 0, nil
+		},
+	}
+	w, err := NewWorker(repo, runner, zerolog.Nop(), Config{DefaultTimeout: time.Second}, stageMetrics)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := `{"reference_path":"/ref.fa","read1_path":"/r1","read2_path":"/r2","output_bam_path":"` + bamPath + `"}`
+	if err := w.Handle(context.Background(), queue.Message{JobID: created.ID.String(), Payload: json.RawMessage(payload)}); err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(reg.Handler())
+	t.Cleanup(srv.Close)
+	resp, err := http.Get(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	if !strings.Contains(text, "senju_pipeline_stage_duration_seconds") {
+		t.Fatalf("metrics missing duration: %s", text)
+	}
+	if !strings.Contains(text, "stage=\"alignment\"") || !strings.Contains(text, "outcome=\"success\"") {
+		t.Fatalf("metrics missing labels: %s", text)
+	}
 }
 
 type runnerCall struct {
@@ -80,7 +136,7 @@ func TestWorkerHandle_SuccessPersistsBAMAndChecksum(t *testing.T) {
 		DefaultTimeout:  10 * time.Second,
 		DefaultThreads:  8,
 		DefaultMemoryMB: 4096,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -133,7 +189,7 @@ func TestWorkerHandle_ConfigurableLimitsApplied(t *testing.T) {
 		DefaultTimeout:  time.Second,
 		DefaultThreads:  2,
 		DefaultMemoryMB: 1024,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +236,7 @@ func TestWorkerHandle_DeterministicChecksum(t *testing.T) {
 			return 0, nil
 		},
 	}
-	w, err := NewWorker(repo, runner, zerolog.Nop(), Config{})
+	w, err := NewWorker(repo, runner, zerolog.Nop(), Config{}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +280,7 @@ func TestWorkerHandle_TimeoutFailure(t *testing.T) {
 			<-ctx.Done()
 			return -1, ctx.Err()
 		},
-	}, zerolog.Nop(), Config{DefaultTimeout: 20 * time.Millisecond})
+	}, zerolog.Nop(), Config{DefaultTimeout: 20 * time.Millisecond}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +351,7 @@ func TestWorkerHandle_FailureCases_TableDriven(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			w, err := NewWorker(repo, &fakeRunner{run: tt.runner}, zerolog.Nop(), Config{DefaultTimeout: time.Second})
+			w, err := NewWorker(repo, &fakeRunner{run: tt.runner}, zerolog.Nop(), Config{DefaultTimeout: time.Second}, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
