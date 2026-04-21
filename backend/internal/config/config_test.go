@@ -119,3 +119,59 @@ func TestLoad_ObjectStoreEnabled(t *testing.T) {
 		t.Fatalf("region: got %q", cfg.ObjectStore.Region)
 	}
 }
+
+func TestLoad_QueueDefaultsAndOverrides(t *testing.T) {
+	t.Setenv("API_PORT", "8080")
+	t.Setenv("POSTGRES_HOST", "")
+	t.Setenv("POSTGRES_DSN", "")
+	t.Setenv("CLICKHOUSE_HTTP_URL", "")
+
+	t.Run("defaults", func(t *testing.T) {
+		t.Setenv("QUEUE_STREAM_NAME", "")
+		t.Setenv("QUEUE_SUBJECT", "")
+		t.Setenv("QUEUE_DEAD_LETTER_SUBJECT", "")
+		t.Setenv("QUEUE_CONSUMER_NAME", "")
+		t.Setenv("QUEUE_MAX_RETRIES", "")
+		t.Setenv("QUEUE_BACKOFF_BASE", "")
+
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Queue.StreamName != "jobs_stream" || cfg.Queue.Subject != "jobs.execute" {
+			t.Fatalf("defaults queue %+v", cfg.Queue)
+		}
+		if cfg.Queue.DeadLetter != "jobs.dead_letter" || cfg.Queue.ConsumerName != "jobs_worker" {
+			t.Fatalf("defaults queue %+v", cfg.Queue)
+		}
+		if cfg.Queue.MaxRetries != 3 {
+			t.Fatalf("max retries got %d", cfg.Queue.MaxRetries)
+		}
+	})
+
+	t.Run("overrides", func(t *testing.T) {
+		t.Setenv("QUEUE_STREAM_NAME", "s")
+		t.Setenv("QUEUE_SUBJECT", "work")
+		t.Setenv("QUEUE_DEAD_LETTER_SUBJECT", "dlq")
+		t.Setenv("QUEUE_CONSUMER_NAME", "worker")
+		t.Setenv("QUEUE_MAX_RETRIES", "8")
+		t.Setenv("QUEUE_BACKOFF_BASE", "250ms")
+
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Queue.StreamName != "s" || cfg.Queue.Subject != "work" {
+			t.Fatalf("queue %+v", cfg.Queue)
+		}
+		if cfg.Queue.DeadLetter != "dlq" || cfg.Queue.ConsumerName != "worker" {
+			t.Fatalf("queue %+v", cfg.Queue)
+		}
+		if cfg.Queue.MaxRetries != 8 {
+			t.Fatalf("max retries got %d", cfg.Queue.MaxRetries)
+		}
+		if got := cfg.Queue.BackoffBase.String(); got != "250ms" {
+			t.Fatalf("backoff got %s", got)
+		}
+	})
+}

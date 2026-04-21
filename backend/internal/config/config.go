@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Config holds runtime settings for the API process and readiness wiring.
@@ -24,6 +25,7 @@ type Config struct {
 
 	// ObjectStore configures S3-compatible multipart uploads (e.g. MinIO). See ObjectStoreConfig.Enabled.
 	ObjectStore ObjectStoreConfig
+	Queue       QueueConfig
 }
 
 // ObjectStoreConfig holds S3-compatible API settings for presigned multipart uploads.
@@ -35,6 +37,16 @@ type ObjectStoreConfig struct {
 	AccessKey    string
 	SecretKey    string
 	UsePathStyle bool
+}
+
+// QueueConfig defines NATS/JetStream queue behavior for worker retries.
+type QueueConfig struct {
+	StreamName   string
+	Subject      string
+	DeadLetter   string
+	ConsumerName string
+	MaxRetries   int
+	BackoffBase  time.Duration
 }
 
 // Enabled reports whether object multipart routes should call the object store (vs 503).
@@ -104,6 +116,14 @@ func Load() (Config, error) {
 			SecretKey:    secretKey,
 			UsePathStyle: usePathStyle,
 		},
+		Queue: QueueConfig{
+			StreamName:   getenvDefault("QUEUE_STREAM_NAME", "jobs_stream"),
+			Subject:      getenvDefault("QUEUE_SUBJECT", "jobs.execute"),
+			DeadLetter:   getenvDefault("QUEUE_DEAD_LETTER_SUBJECT", "jobs.dead_letter"),
+			ConsumerName: getenvDefault("QUEUE_CONSUMER_NAME", "jobs_worker"),
+			MaxRetries:   parseIntDefault("QUEUE_MAX_RETRIES", 3),
+			BackoffBase:  parseDurationDefault("QUEUE_BACKOFF_BASE", 1*time.Second),
+		},
 	}, nil
 }
 
@@ -137,4 +157,28 @@ func getenvDefault(key, def string) string {
 		return v
 	}
 	return def
+}
+
+func parseIntDefault(key string, def int) int {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return def
+	}
+	i, err := strconv.Atoi(v)
+	if err != nil {
+		return def
+	}
+	return i
+}
+
+func parseDurationDefault(key string, def time.Duration) time.Duration {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return def
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return def
+	}
+	return d
 }
