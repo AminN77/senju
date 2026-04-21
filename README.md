@@ -37,6 +37,7 @@
 - FastQC worker stage implementation: `backend/internal/pipeline/fastqc`
 - BWA + SAMtools alignment worker stage implementation: `backend/internal/pipeline/alignment`
 - GATK variant-calling worker stage implementation: `backend/internal/pipeline/gatk`
+- Observability baseline (Prometheus, Loki, Grafana dashboard): `docs/observability.md`
 
 ## Variant analytics storage
 

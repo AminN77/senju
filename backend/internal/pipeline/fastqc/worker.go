@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/AminN77/senju/backend/internal/job"
+	"github.com/AminN77/senju/backend/internal/pipeline/stagemetrics"
 	"github.com/AminN77/senju/backend/internal/queue"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -58,14 +59,15 @@ type Config struct {
 
 // Worker executes FastQC for queue messages and persists job stage state.
 type Worker struct {
-	repo   job.Repository
-	runner CommandRunner
-	log    zerolog.Logger
-	cfg    Config
+	repo    job.Repository
+	runner  CommandRunner
+	log     zerolog.Logger
+	cfg     Config
+	metrics *stagemetrics.Metrics
 }
 
 // NewWorker creates a FastQC stage worker.
-func NewWorker(repo job.Repository, runner CommandRunner, log zerolog.Logger, cfg Config) (*Worker, error) {
+func NewWorker(repo job.Repository, runner CommandRunner, log zerolog.Logger, cfg Config, metrics *stagemetrics.Metrics) (*Worker, error) {
 	if repo == nil {
 		return nil, errors.New("fastqc worker: repo is nil")
 	}
@@ -75,7 +77,7 @@ func NewWorker(repo job.Repository, runner CommandRunner, log zerolog.Logger, cf
 	if cfg.DefaultTimeout <= 0 {
 		cfg.DefaultTimeout = 15 * time.Minute
 	}
-	return &Worker{repo: repo, runner: runner, log: log, cfg: cfg}, nil
+	return &Worker{repo: repo, runner: runner, log: log, cfg: cfg, metrics: metrics}, nil
 }
 
 type payload struct {
@@ -120,6 +122,18 @@ func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 	if runErr != nil {
 		status = job.StatusFailed
 		stage = StageFastQCFailed
+	}
+	if w.metrics != nil {
+		outcome := "success"
+		errClass := ""
+		if runErr != nil {
+			outcome = "failure"
+			errClass = "tool"
+			if errors.Is(runErr, context.Canceled) || errors.Is(runErr, context.DeadlineExceeded) {
+				errClass = "infrastructure"
+			}
+		}
+		w.metrics.Observe("fastqc", outcome, errClass, duration)
 	}
 
 	outRef, marshalErr := buildOutputRef(exitCode, duration, p, runErr)
