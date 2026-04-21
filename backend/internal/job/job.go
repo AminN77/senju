@@ -51,7 +51,10 @@ type CreateParams struct {
 	CompletedAt *time.Time
 }
 
-// UpdateParams holds mutable job fields for updates. Nil time pointers mean "leave existing value".
+// UpdateParams holds mutable job fields for updates.
+// StartedAt/CompletedAt nil pointers mean "leave existing value".
+// OutputRef uses the same semantics as storage mapping: len(OutputRef) == 0 means
+// "leave existing value unchanged"; to persist explicit JSON null, pass []byte("null").
 type UpdateParams struct {
 	Status      Status
 	Stage       string

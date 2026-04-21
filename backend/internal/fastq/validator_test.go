@@ -43,6 +43,16 @@ func TestValidateStream(t *testing.T) {
 			in:   "@r1\nACTG\n+\n",
 			want: Result{Valid: false, FailureReason: "missing_quality", FailureRecord: 1},
 		},
+		{
+			name: "missing sequence line",
+			in:   "@r1\n",
+			want: Result{Valid: false, FailureReason: "missing_sequence", FailureRecord: 1},
+		},
+		{
+			name: "missing plus line",
+			in:   "@r1\nACTG\n",
+			want: Result{Valid: false, FailureReason: "plus_missing", FailureRecord: 1},
+		},
 	}
 
 	for _, tt := range tests {
@@ -57,5 +67,19 @@ func TestValidateStream(t *testing.T) {
 				t.Fatalf("got=%+v want=%+v", got, tt.want)
 			}
 		})
+	}
+}
+
+func BenchmarkValidateStream(b *testing.B) {
+	sample := "@r1\nACTGACTG\n+\nIIIIIIII\n@r2\nNNNN\n+\n####\n"
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		res, err := ValidateStream(strings.NewReader(sample))
+		if err != nil {
+			b.Fatalf("unexpected error: %v", err)
+		}
+		if !res.Valid || res.Records != 2 {
+			b.Fatalf("unexpected result: %+v", res)
+		}
 	}
 }

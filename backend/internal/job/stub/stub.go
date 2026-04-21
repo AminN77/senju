@@ -100,7 +100,7 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, p job.UpdateParam
 	}
 	j.Status = p.Status
 	j.Stage = p.Stage
-	if p.OutputRef != nil {
+	if len(p.OutputRef) > 0 {
 		j.OutputRef = cloneRawMessage(p.OutputRef)
 	}
 	if p.StartedAt != nil {

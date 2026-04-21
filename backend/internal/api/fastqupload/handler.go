@@ -233,14 +233,17 @@ func handleValidate(repo job.Repository) gin.HandlerFunc {
 			status = job.StatusFailed
 		}
 
-		payload, err := json.Marshal(map[string]any{
-			"kind":           "fastq_validation_v1",
-			"valid":          res.Valid,
-			"records":        res.Records,
-			"failure_reason": res.FailureReason,
-			"failure_record": res.FailureRecord,
-			"validated_at":   time.Now().UTC().Format(time.RFC3339Nano),
-		})
+		payloadMap := map[string]any{
+			"kind":         "fastq_validation_v1",
+			"valid":        res.Valid,
+			"records":      res.Records,
+			"validated_at": time.Now().UTC().Format(time.RFC3339Nano),
+		}
+		if !res.Valid {
+			payloadMap["failure_reason"] = res.FailureReason
+			payloadMap["failure_record"] = res.FailureRecord
+		}
+		payload, err := json.Marshal(payloadMap)
 		if err != nil {
 			problem.JSON(c, http.StatusInternalServerError, problem.Problem{
 				Type:   problem.TypeInternalError,

@@ -297,6 +297,7 @@ func TestPostFastqValidate_200_Invalid(t *testing.T) {
 
 	body := "@r1\nACGT\n+\nII\n"
 	req := httptest.NewRequest(http.MethodPost, "/v1/jobs/fastq-upload/"+created.ID.String()+"/validate", strings.NewReader(body))
+	req.Header.Set("Content-Type", "text/plain")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -315,6 +316,12 @@ func TestPostFastqValidate_200_Invalid(t *testing.T) {
 	}
 	if updated.Stage != StageFastqValidationFailed || updated.Status != job.StatusFailed {
 		t.Fatalf("updated job %+v", updated)
+	}
+	if !bytes.Contains(updated.OutputRef, []byte(`"failure_reason":"quality_length_mismatch"`)) {
+		t.Fatalf("output_ref missing failure_reason: %s", updated.OutputRef)
+	}
+	if !bytes.Contains(updated.OutputRef, []byte(`"failure_record":1`)) {
+		t.Fatalf("output_ref missing failure_record: %s", updated.OutputRef)
 	}
 }
 
