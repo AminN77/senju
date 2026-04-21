@@ -5,7 +5,7 @@ providers:
     orgId: 1
     folder: Senju
     type: file
-    disableDeletion: false
+    disableDeletion: true
     editable: false
     options:
       path: /var/lib/grafana/dashboards

@@ -111,6 +111,9 @@ func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 	}
 	p, err := decodePayload(msg.Payload)
 	if err != nil {
+		if w.metrics != nil {
+			w.metrics.Observe("alignment", "failure", "validation", 0)
+		}
 		_ = w.persistTerminalFailure(ctx, jobID, -1, payload{}, 0, 0, err)
 		return err
 	}

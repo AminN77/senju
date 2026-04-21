@@ -63,6 +63,9 @@ func TestWorkerHandle_ExportsPrometheusMetrics(t *testing.T) {
 	if !strings.Contains(text, "senju_pipeline_stage_duration_seconds") {
 		t.Fatalf("metrics missing duration: %s", text)
 	}
+	if !strings.Contains(text, "senju_pipeline_stage_total") {
+		t.Fatalf("metrics missing total counter: %s", text)
+	}
 	if !strings.Contains(text, "stage=\"fastqc\"") || !strings.Contains(text, "outcome=\"success\"") {
 		t.Fatalf("metrics missing labels: %s", text)
 	}

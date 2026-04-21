@@ -76,8 +76,56 @@ func TestWorkerHandle_ExportsPrometheusMetrics(t *testing.T) {
 	if !strings.Contains(text, "senju_pipeline_stage_duration_seconds") {
 		t.Fatalf("metrics missing duration: %s", text)
 	}
+	if !strings.Contains(text, "senju_pipeline_stage_total") {
+		t.Fatalf("metrics missing total counter: %s", text)
+	}
 	if !strings.Contains(text, "stage=\"alignment\"") || !strings.Contains(text, "outcome=\"success\"") {
 		t.Fatalf("metrics missing labels: %s", text)
+	}
+}
+
+func TestWorkerHandle_ExportsPrometheusFailureMetrics(t *testing.T) {
+	t.Parallel()
+	repo := newRecordingRepo()
+	created, err := repo.Create(context.Background(), job.CreateParams{Status: job.StatusPending, Stage: "queued"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stageMetrics := stagemetrics.New()
+	reg := pmetrics.NewRegistry()
+	for _, c := range stageMetrics.Collectors() {
+		reg.MustRegister(c)
+	}
+	w, err := NewWorker(repo, &fakeRunner{
+		run: func(_ context.Context, _ string, _ ...string) (int, error) { return 0, nil },
+	}, zerolog.Nop(), Config{DefaultTimeout: time.Second}, stageMetrics)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Missing required fields triggers decodePayload failure path.
+	if err := w.Handle(context.Background(), queue.Message{
+		JobID:   created.ID.String(),
+		Payload: json.RawMessage(`{"reference_path":"/ref.fa","read1_path":"/r1"}`),
+	}); err == nil {
+		t.Fatal("expected handle error")
+	}
+	srv := httptest.NewServer(reg.Handler())
+	t.Cleanup(srv.Close)
+	resp, err := http.Get(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(body)
+	if !strings.Contains(text, "senju_pipeline_stage_total") {
+		t.Fatalf("metrics missing total counter: %s", text)
+	}
+	if !strings.Contains(text, "stage=\"alignment\"") || !strings.Contains(text, "outcome=\"failure\"") {
+		t.Fatalf("failure metrics missing labels: %s", text)
 	}
 }
 
