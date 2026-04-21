@@ -49,3 +49,8 @@ jobs:
 
       - name: Go vet
         run: go vet ./...
+
+      - name: Performance regression gate
+        run: |
+          go test -run '^$' -bench 'BenchmarkMultipartInit_Throughput|BenchmarkAlignmentHandle_Throughput|BenchmarkGetVariants_Latency' -benchmem -count=1 ./internal/api/objectupload ./internal/pipeline/alignment ./internal/api/variantquery > /tmp/bench.txt
+          go run ./cmd/perfcheck

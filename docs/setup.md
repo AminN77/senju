@@ -74,6 +74,10 @@ Queue retry/dead-letter behavior and env configuration are documented in [docs/p
 
 Checkpoint/restart behavior and recovery assumptions are documented in [docs/reliability.md](./reliability.md).
 
+## Performance qualification
+
+Benchmark suite and regression gate policy are documented in [docs/performance.md](./performance.md).
+
 ## Observability baseline
 
 Monitoring/logging stack setup (Prometheus, Loki, Grafana) is documented in [docs/observability.md](./observability.md).

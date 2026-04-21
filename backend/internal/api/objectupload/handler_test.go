@@ -175,6 +175,29 @@ func TestSanitizeFilenameHint(t *testing.T) {
 
 func ptr(s string) *string { return &s }
 
+func BenchmarkMultipartInit_Throughput(b *testing.B) {
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	Register(r.Group("/v1/objects"), &fakeStore{
+		createFn: func(_ context.Context, objectKey, _ string) (*objectstore.MultipartCreateResult, error) {
+			return &objectstore.MultipartCreateResult{
+				Bucket: "b", ObjectKey: objectKey, UploadID: "u", PartSizeBytes: objectstore.DefaultPartSizeBytes,
+			}, nil
+		},
+	}, zerolog.Nop())
+	body := `{"content_type":"application/octet-stream"}`
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		req := httptest.NewRequest(http.MethodPost, "/v1/objects/multipart", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != http.StatusCreated {
+			b.Fatalf("status %d", w.Code)
+		}
+	}
+}
+
 func TestDecodeJSON_TrailingRejected(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
