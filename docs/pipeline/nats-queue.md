@@ -85,3 +85,13 @@ Labels are consistent across stages:
 - `stage`
 - `outcome` (`success`/`failure`)
 - `error_class` (empty for success; failure classification when available)
+
+## Reliability controls: checkpoint/restart (Issue #18)
+
+Alignment worker now supports checkpoint-based restart semantics:
+
+- After successful `bwa mem`, the worker writes a checkpoint file alongside the target BAM path (`<output_bam_path>.checkpoint.json`) containing the intermediate SAM file path.
+- If the worker is interrupted before `samtools sort` completes, a retry resumes from checkpoint and **skips `bwa mem`** instead of restarting from scratch.
+- On successful completion, intermediate SAM and checkpoint files are removed.
+
+This improves recovery behavior during worker restarts/crashes while avoiding partial-output corruption.

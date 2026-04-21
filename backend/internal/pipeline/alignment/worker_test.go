@@ -428,3 +428,91 @@ func TestWorkerHandle_FailureCases_TableDriven(t *testing.T) {
 		})
 	}
 }
+
+func TestWorkerHandle_CheckpointResumeAfterInterruption(t *testing.T) {
+	t.Parallel()
+	repo := newRecordingRepo()
+	created, err := repo.Create(context.Background(), job.CreateParams{Status: job.StatusPending, Stage: "queued"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpDir := t.TempDir()
+	bamPath := filepath.Join(tmpDir, "out.bam")
+	cpPath := checkpointPathForBAM(bamPath)
+
+	var calls []string
+	firstRunner := &fakeRunner{
+		run: func(_ context.Context, name string, args ...string) (int, error) {
+			calls = append(calls, name)
+			switch name {
+			case "bwa":
+				samOut := args[4] // mem -t N -o <sam> ...
+				if err := os.WriteFile(samOut, []byte("sam-content"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				return 0, nil
+			case "samtools":
+				return -1, context.DeadlineExceeded
+			default:
+				return -1, errors.New("unexpected command")
+			}
+		},
+	}
+	w1, err := NewWorker(repo, firstRunner, zerolog.Nop(), Config{DefaultTimeout: time.Second}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := `{"reference_path":"/ref.fa","read1_path":"/r1","read2_path":"/r2","output_bam_path":"` + bamPath + `"}`
+	if err := w1.Handle(context.Background(), queue.Message{
+		JobID:   created.ID.String(),
+		Payload: json.RawMessage(payload),
+	}); err != nil {
+		t.Fatalf("expected nil after terminal persistence, got %v", err)
+	}
+	if _, err := os.Stat(cpPath); err != nil {
+		t.Fatalf("expected checkpoint file, got %v", err)
+	}
+
+	secondRunner := &fakeRunner{
+		run: func(_ context.Context, name string, _ ...string) (int, error) {
+			calls = append(calls, name)
+			if name == "samtools" {
+				if err := os.WriteFile(bamPath, []byte("resumed-bam"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				return 0, nil
+			}
+			return -1, errors.New("bwa should be skipped on resume")
+		},
+	}
+	w2, err := NewWorker(repo, secondRunner, zerolog.Nop(), Config{DefaultTimeout: time.Second}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w2.Handle(context.Background(), queue.Message{
+		JobID:   created.ID.String(),
+		Payload: json.RawMessage(payload),
+	}); err != nil {
+		t.Fatalf("unexpected resume error: %v", err)
+	}
+
+	updated, err := repo.GetByID(context.Background(), created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Status != job.StatusSucceeded || updated.Stage != StageAlignmentSucceeded {
+		t.Fatalf("job %+v", updated)
+	}
+	if !bytes.Contains(updated.OutputRef, []byte(`"checksum_sha256"`)) {
+		t.Fatalf("output_ref %s", updated.OutputRef)
+	}
+	if _, err := os.Stat(cpPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("checkpoint should be removed, stat err=%v", err)
+	}
+
+	// First run executes bwa+samtools, second run resumes with samtools only.
+	got := strings.Join(calls, ",")
+	if got != "bwa,samtools,samtools" {
+		t.Fatalf("unexpected call order %q", got)
+	}
+}
