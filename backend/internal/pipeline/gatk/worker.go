@@ -145,8 +145,11 @@ func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 	}
 	p, err := decodePayload(msg.Payload)
 	if err != nil {
-		_ = w.persistFailure(ctx, jobID, -1, payload{}, 0, 0, err)
-		return err
+		if perr := w.persistFailure(ctx, jobID, -1, payload{}, 0, 0, 0, ErrorClassConfiguration, err); perr != nil {
+			return fmt.Errorf("gatk worker: persist configuration failure: %w", perr)
+		}
+		w.observe("failure", ErrorClassConfiguration, 0)
+		return nil
 	}
 
 	started := time.Now().UTC()
@@ -168,15 +171,16 @@ func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 	duration := time.Since(stageStart)
 
 	if runErr != nil {
-		if err := w.persistFailure(ctx, jobID, exitCode, p, threads, memMB, runErr); err != nil {
+		class := classifyError(runErr, exitCode)
+		if err := w.persistFailure(ctx, jobID, exitCode, p, threads, memMB, duration, class, runErr); err != nil {
 			return fmt.Errorf("gatk worker: persist failure: %w", err)
 		}
-		w.observe("failure", classifyError(runErr, exitCode), duration)
+		w.observe("failure", class, duration)
 		w.log.Info().Str("job_id", msg.JobID).Str("stage", "gatk").Int("exit_code", exitCode).Dur("duration", duration).Msg("pipeline stage completed")
 		return nil
 	}
 
-	outRef, err := buildOutputRef(exitCode, duration, p, threads, memMB, "")
+	outRef, err := buildOutputRef(exitCode, duration, p, threads, memMB, "", "")
 	if err != nil {
 		return fmt.Errorf("gatk worker: output_ref: %w", err)
 	}
@@ -206,8 +210,8 @@ func (w *Worker) runPipeline(ctx context.Context, p payload, threads, memMB int)
 	return w.runner.Run(ctx, "gatk", args...)
 }
 
-func (w *Worker) persistFailure(ctx context.Context, jobID uuid.UUID, exitCode int, p payload, threads, memMB int, runErr error) error {
-	outRef, err := buildOutputRef(exitCode, 0, p, threads, memMB, runErr.Error())
+func (w *Worker) persistFailure(ctx context.Context, jobID uuid.UUID, exitCode int, p payload, threads, memMB int, duration time.Duration, errorClass string, runErr error) error {
+	outRef, err := buildOutputRef(exitCode, duration, p, threads, memMB, errorClass, runErr.Error())
 	if err != nil {
 		return err
 	}
@@ -276,7 +280,7 @@ func classifyError(err error, exitCode int) string {
 	}
 }
 
-func buildOutputRef(exitCode int, duration time.Duration, p payload, threads, memMB int, errorMsg string) (json.RawMessage, error) {
+func buildOutputRef(exitCode int, duration time.Duration, p payload, threads, memMB int, errorClass, errorMsg string) (json.RawMessage, error) {
 	m := map[string]any{
 		"kind":        "gatk_vcf_v1",
 		"exit_code":   exitCode,
@@ -289,6 +293,9 @@ func buildOutputRef(exitCode int, duration time.Duration, p payload, threads, me
 			"vcf_path": p.OutputVCFPath,
 			"vcf_uri":  p.OutputVCFURI,
 		},
+	}
+	if errorClass != "" {
+		m["error_class"] = errorClass
 	}
 	if errorMsg != "" {
 		m["error"] = errorMsg

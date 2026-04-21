@@ -94,7 +94,7 @@ func TestWorkerHandle_ErrorClassificationAndFailurePersistence(t *testing.T) {
 			payload:        `{"reference_path":"/ref.fa"}`,
 			runner:         func(_ context.Context, _ string, _ ...string) (int, error) { return 0, nil },
 			wantClass:      ErrorClassConfiguration,
-			expectHandleEr: true,
+			expectHandleEr: false,
 		},
 		{
 			name:    "tool error",
@@ -146,6 +146,9 @@ func TestWorkerHandle_ErrorClassificationAndFailurePersistence(t *testing.T) {
 			}
 			if !bytes.Contains(updated.OutputRef, []byte(`"error"`)) {
 				t.Fatalf("output_ref %s", updated.OutputRef)
+			}
+			if !bytes.Contains(updated.OutputRef, []byte(`"error_class":"`+tt.wantClass+`"`)) {
+				t.Fatalf("output_ref missing error_class: %s", updated.OutputRef)
 			}
 			class := classifyError(handleErr, 2)
 			if !tt.expectHandleEr {
