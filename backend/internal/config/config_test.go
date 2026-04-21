@@ -174,4 +174,43 @@ func TestLoad_QueueDefaultsAndOverrides(t *testing.T) {
 			t.Fatalf("backoff got %s", got)
 		}
 	})
+
+	t.Run("malformed numeric and duration env", func(t *testing.T) {
+		t.Setenv("QUEUE_STREAM_NAME", "s")
+		t.Setenv("QUEUE_SUBJECT", "work")
+		t.Setenv("QUEUE_DEAD_LETTER_SUBJECT", "dlq")
+		t.Setenv("QUEUE_CONSUMER_NAME", "worker")
+		t.Setenv("QUEUE_MAX_RETRIES", "abc")
+		t.Setenv("QUEUE_BACKOFF_BASE", "250ms")
+
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "QUEUE_MAX_RETRIES") {
+			t.Fatalf("expected QUEUE_MAX_RETRIES parse error, got %v", err)
+		}
+
+		t.Setenv("QUEUE_MAX_RETRIES", "3")
+		t.Setenv("QUEUE_BACKOFF_BASE", "oops")
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "QUEUE_BACKOFF_BASE") {
+			t.Fatalf("expected QUEUE_BACKOFF_BASE parse error, got %v", err)
+		}
+	})
+
+	t.Run("whitespace-only queue fields use defaults", func(t *testing.T) {
+		t.Setenv("QUEUE_STREAM_NAME", "   ")
+		t.Setenv("QUEUE_SUBJECT", " ")
+		t.Setenv("QUEUE_DEAD_LETTER_SUBJECT", "\t")
+		t.Setenv("QUEUE_CONSUMER_NAME", "   ")
+		t.Setenv("QUEUE_MAX_RETRIES", "")
+		t.Setenv("QUEUE_BACKOFF_BASE", "")
+
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Queue.StreamName != "jobs_stream" || cfg.Queue.Subject != "jobs.execute" {
+			t.Fatalf("queue defaults %+v", cfg.Queue)
+		}
+		if cfg.Queue.DeadLetter != "jobs.dead_letter" || cfg.Queue.ConsumerName != "jobs_worker" {
+			t.Fatalf("queue defaults %+v", cfg.Queue)
+		}
+	})
 }

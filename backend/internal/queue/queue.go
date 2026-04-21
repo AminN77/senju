@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -36,16 +37,16 @@ type Config struct {
 
 // Validate checks required queue configuration.
 func (c Config) Validate() error {
-	if c.StreamName == "" {
+	if strings.TrimSpace(c.StreamName) == "" {
 		return errors.New("queue config: stream_name is required")
 	}
-	if c.Subject == "" {
+	if strings.TrimSpace(c.Subject) == "" {
 		return errors.New("queue config: subject is required")
 	}
-	if c.ConsumerName == "" {
+	if strings.TrimSpace(c.ConsumerName) == "" {
 		return errors.New("queue config: consumer_name is required")
 	}
-	if c.DeadLetter == "" {
+	if strings.TrimSpace(c.DeadLetter) == "" {
 		return errors.New("queue config: dead_letter is required")
 	}
 	if c.MaxRetries < 0 {

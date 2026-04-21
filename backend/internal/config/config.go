@@ -101,6 +101,15 @@ func Load() (Config, error) {
 		endpoint = strings.TrimSpace(os.Getenv("MINIO_S3_ENDPOINT"))
 	}
 
+	queueMaxRetries, err := parseIntEnv("QUEUE_MAX_RETRIES", 3)
+	if err != nil {
+		return Config{}, err
+	}
+	queueBackoffBase, err := parseDurationEnv("QUEUE_BACKOFF_BASE", 1*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		APIPort:        port,
 		LogLevel:       os.Getenv("LOG_LEVEL"),
@@ -117,12 +126,12 @@ func Load() (Config, error) {
 			UsePathStyle: usePathStyle,
 		},
 		Queue: QueueConfig{
-			StreamName:   getenvDefault("QUEUE_STREAM_NAME", "jobs_stream"),
-			Subject:      getenvDefault("QUEUE_SUBJECT", "jobs.execute"),
-			DeadLetter:   getenvDefault("QUEUE_DEAD_LETTER_SUBJECT", "jobs.dead_letter"),
-			ConsumerName: getenvDefault("QUEUE_CONSUMER_NAME", "jobs_worker"),
-			MaxRetries:   parseIntDefault("QUEUE_MAX_RETRIES", 3),
-			BackoffBase:  parseDurationDefault("QUEUE_BACKOFF_BASE", 1*time.Second),
+			StreamName:   getenvDefaultTrim("QUEUE_STREAM_NAME", "jobs_stream"),
+			Subject:      getenvDefaultTrim("QUEUE_SUBJECT", "jobs.execute"),
+			DeadLetter:   getenvDefaultTrim("QUEUE_DEAD_LETTER_SUBJECT", "jobs.dead_letter"),
+			ConsumerName: getenvDefaultTrim("QUEUE_CONSUMER_NAME", "jobs_worker"),
+			MaxRetries:   queueMaxRetries,
+			BackoffBase:  queueBackoffBase,
 		},
 	}, nil
 }
@@ -159,26 +168,34 @@ func getenvDefault(key, def string) string {
 	return def
 }
 
-func parseIntDefault(key string, def int) int {
+func getenvDefaultTrim(key, def string) string {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v != "" {
+		return v
+	}
+	return def
+}
+
+func parseIntEnv(key string, def int) (int, error) {
 	v := strings.TrimSpace(os.Getenv(key))
 	if v == "" {
-		return def
+		return def, nil
 	}
 	i, err := strconv.Atoi(v)
 	if err != nil {
-		return def
+		return 0, fmt.Errorf("%s: parse int: %w", key, err)
 	}
-	return i
+	return i, nil
 }
 
-func parseDurationDefault(key string, def time.Duration) time.Duration {
+func parseDurationEnv(key string, def time.Duration) (time.Duration, error) {
 	v := strings.TrimSpace(os.Getenv(key))
 	if v == "" {
-		return def
+		return def, nil
 	}
 	d, err := time.ParseDuration(v)
 	if err != nil {
-		return def
+		return 0, fmt.Errorf("%s: parse duration: %w", key, err)
 	}
-	return d
+	return d, nil
 }

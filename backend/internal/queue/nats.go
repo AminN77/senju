@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"time"
 
@@ -187,6 +188,7 @@ func (q *NATSQueue) publishDLQ(ctx context.Context, m Message, attempts int) err
 	if err != nil {
 		return fmt.Errorf("queue: marshal dead-letter message: %w", err)
 	}
+	log.Printf("queue dead-letter event job_id=%s attempts=%d dead_letter=true subject=%s", m.JobID, attempts, q.cfg.DeadLetter)
 	if _, err := q.js.Publish(q.cfg.DeadLetter, body, nats.Context(ctx)); err != nil {
 		return fmt.Errorf("queue: publish dead-letter: %w", err)
 	}
