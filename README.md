@@ -26,6 +26,18 @@
 - Issue templates: `.github/ISSUE_TEMPLATE/`
 - Code ownership: `CODEOWNERS`
 
+## Frontend (planned — UI Foundation phase)
+
+- Frontend engineering docs: `docs/frontend/README.md`
+- Design principles: `docs/frontend/design-principles.md`
+- Design system and tokens: `docs/frontend/design-system.md`
+- Color palette: `docs/frontend/color-palette.md`
+- Information architecture: `docs/frontend/information-architecture.md`
+- Accessibility (WCAG 2.1 AA baseline): `docs/frontend/accessibility.md`
+- Component standards: `docs/frontend/component-standards.md`
+- IP guardrails for UX references: `docs/frontend/ip-and-references.md`
+- Phase roadmap: `docs/frontend/roadmap.md`
+
 ## Architecture decisions
 
 - ADR index: `docs/adr/README.md`
@@ -33,6 +45,9 @@
   - `docs/adr/0001-queue-system-strategy.md`
   - `docs/adr/0002-database-split-postgres-clickhouse.md`
   - `docs/adr/0003-workflow-orchestration-strategy.md`
+  - `docs/adr/0005-frontend-framework.md`
+  - `docs/adr/0006-frontend-design-system.md`
+  - `docs/adr/0007-frontend-repo-layout.md`
 
 ## Pipeline queue
 

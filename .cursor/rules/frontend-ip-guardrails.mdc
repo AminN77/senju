@@ -1,0 +1,50 @@
+---
+description: IP safety guardrails when referencing competitor UIs during the senju UI Foundation phase
+alwaysApply: true
+---
+
+# IP guardrails (Senju — UI Foundation phase)
+
+Authoritative doc: **`docs/frontend/ip-and-references.md`**.
+
+Senju is open source. The UI Foundation phase uses **DNAnexus** (and, secondarily, other commercial genomics platforms) as a **pattern reference**, not a visual source. Borrow ideas; build from scratch.
+
+## Hard rules
+
+1. **Do not copy** CSS, component code, class names, or DOM structure from any competitor's shipped site or app. Studying with DevTools is fine; pasting is not.
+2. **Do not reuse** icons, illustrations, photography, screenshots, or any visual asset from a competitor. Our icon set is Lucide (MIT). Illustrations are original or under MIT / CC-BY / CC0 / OFL / Apache-2.0 with attribution.
+3. **Do not reuse** microcopy, headings, error messages, tooltips, or onboarding copy from a competitor — not verbatim, not paraphrased.
+4. **Do not reuse** brand colors. If our brand hue is too close to a competitor's, we adjust.
+5. **Do not replicate trade dress** — the overall identifiable look-and-feel of a competitor's product.
+
+## What is allowed
+
+- Domain terminology (FASTQ, BWA, VCF, allele frequency, etc.) — these are the field's vocabulary.
+- Familiar workflow ordering (upload → QC → align → variant call → browse) — this is the genomics workflow.
+- Placing projects, jobs, variants, admin, and settings where users expect them in the nav.
+- Open-source reference projects (Galaxy, Nextflow, Grafana, Superset, Metabase UIs) under their licenses with attribution.
+
+## The third-party test — apply before every UI-facing PR
+
+Before merging, answer **yes** to each:
+
+1. Could a neutral observer identify Senju as a distinct product when shown side-by-side with the reference competitor?
+2. Is every visual asset original or from a license-compatible source with attribution where required?
+3. Is every piece of copy written by the Senju team, not paraphrased from a competitor?
+4. If a new dependency was added, is its license compatible with OSS distribution?
+
+Any **no** blocks the merge.
+
+## Escalation
+
+- If unsure, **tag a second reviewer** before merging.
+- For structural questions (architecture too close to a competitor's?), open an ADR — do not decide silently.
+- Suspected contamination of already-merged code is handled like a secret leak: **revert first, investigate after**.
+
+## Automated backstops
+
+- Lint forbids Tailwind arbitrary color values (`text-[#...]`, `bg-[#...]`) — the common vector for pasted styles.
+- PR template includes an explicit "no proprietary third-party assets or copy" checkbox; reviewers enforce.
+- `frontend/LICENSES.md` lists all dependencies' licenses and is updated on every dependency change.
+
+This rule applies throughout the UI Foundation phase. When the phase ends, this rule is reviewed — the hard rules stay; phase-specific references (DNAnexus-as-primary-pattern-source) may be retired or generalized.

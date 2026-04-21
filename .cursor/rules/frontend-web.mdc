@@ -1,0 +1,52 @@
+---
+description: Frontend engineering standards for senju (Next.js + TypeScript, a11y, tests)
+globs: frontend/**/*.{ts,tsx,js,jsx,css,md}
+alwaysApply: false
+---
+
+# Frontend rules (Senju)
+
+Follow **`docs/frontend/README.md`** and the ADRs it references on every change.
+
+## Non-negotiables
+
+- **Stack:** Next.js (App Router) + React + **TypeScript strict mode**. No implicit `any`. No `any` without an inline justification comment.
+- **Package manager:** pnpm. Use the committed lockfile.
+- **Styling:** Tailwind utilities only, consuming design tokens. No raw hex values in component code. No inline `style` for design-system values.
+- **Components:** shadcn/ui primitives live in our repo under `frontend/src/components/ui/`; Radix powers behavior. Follow the three-tier layout from `docs/frontend/design-system.md` §9.
+- **Server/client boundary:** Default to server components. Add `"use client"` only when hooks, browser APIs, event handlers, or client-only libs require it. Never import `server-only` code from a client component.
+- **Data contracts:** Consume the backend via the OpenAPI-generated TS client from `backend/openapi/openapi.yaml`. Do not hand-type request/response shapes.
+- **Forms:** React Hook Form + Zod. Validation schemas mirror the OpenAPI contract.
+
+## Testing (merge gates)
+
+- Unit + interaction tests with Vitest + React Testing Library for every component and non-trivial hook.
+- **jest-axe** a11y assertion for every interactive component.
+- **Storybook** stories for every component — default, variants × sizes, loading/empty/error, disabled, long content.
+- **Playwright** route-level E2E for every shipped route.
+- Coverage is not a target; meaningful branch coverage is.
+
+## Accessibility (WCAG 2.1 AA is a floor)
+
+- Keyboard reachable + visible focus on every interactive element.
+- `aria-label` on icon-only buttons — lint-enforced.
+- Color is never the only signal.
+- `prefers-reduced-motion` respected on every animation.
+- See `docs/frontend/accessibility.md`.
+
+## Performance budgets
+
+- Marketing route: ≤ 150 KB JS (gzip), LCP ≤ 2.0s.
+- Authenticated console: ≤ 250 KB JS (gzip) first load, TTI ≤ 3.0s.
+- Virtualize lists > 100 rows.
+- Tree-shake icons (import per icon from `lucide-react`).
+
+## PR expectations (in addition to `senju-workflow`)
+
+- Link to one issue, complete the PR template.
+- Include **keyboard-only walkthrough** in test evidence for any interactive change.
+- Storybook stories updated for any component change.
+- Attach a screenshot of the final UI in both themes for any visual change.
+- If tokens change, `pnpm test:contrast` output included in test evidence.
+
+When unsure, cite `docs/frontend/` and the ADRs in review.

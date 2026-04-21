@@ -1,0 +1,46 @@
+---
+description: Design token discipline and design-system usage for senju frontend
+globs: frontend/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend design system rules (Senju)
+
+Authoritative docs: **`docs/frontend/design-system.md`**, **`docs/frontend/color-palette.md`**, **`docs/frontend/component-standards.md`**.
+
+## Token discipline
+
+- Every color, spacing, radius, elevation, typography, and motion value is a **named token** exposed as a CSS custom property (`--color-*`, `--space-*`, `--radius-*`, `--shadow-*`, `--text-*`, `--leading-*`, `--duration-*`, `--ease-*`, `--z-*`).
+- **No raw hex values** in component code (`.tsx`, `.ts`, `.css`). Use token-backed Tailwind utilities (e.g. `bg-surface-raised`, `text-text-primary`, `border-border-default`).
+- **No Tailwind arbitrary color values** (`text-[#...]`, `bg-[#...]`). If the token doesn't exist, add one — don't inline it.
+- **No inline `style={{}}`** for design-system values. `style` is reserved for dynamic runtime values (progress bar width, live chart positions).
+- **No custom z-index values.** Use `z-*` tokens only.
+
+## Themes
+
+- Dark and light themes ship at parity. A contrast regression in either theme blocks merge.
+- Theme is switched by toggling `[data-theme="dark"]` on `<html>` — never by swapping classNames per component.
+- Verify contrast via `pnpm test:contrast` after any token change.
+
+## Component authoring
+
+- Follow the three-tier structure in `design-system.md` §9 (Primitives / Composed / Domain).
+- Primitives never know about domain concepts.
+- Variants via `class-variance-authority`; variant props are string unions, not multiplying booleans.
+- File layout per `component-standards.md` §1 (folder per component with index, impl, types, stories, tests).
+
+## Forbidden patterns
+
+- `outline: none` or `outline-none` without a compliant focus-visible replacement in the same block.
+- A new component that duplicates an existing primitive's behavior.
+- A second table / dialog / form stack.
+- Raw `<img>` for icons — use Lucide React.
+- Importing an entire icon library at once.
+
+## When extending the system
+
+- New token: update `frontend/src/styles/tokens.css`, `tailwind.config.ts`, and `docs/frontend/design-system.md` or `color-palette.md` in the same PR.
+- New primitive: requires a Storybook story, jest-axe test, a11y contract documented in JSDoc, and approval from a design-system owner.
+- New domain component: may compose primitives and composed components, may not re-implement primitive behavior.
+
+If a change requires breaking these rules, open an ADR.
