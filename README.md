@@ -21,6 +21,7 @@
 - Contribution standards: `docs/contributing.md`
 - Security baseline (JWT/RBAC, secret rotation, CI scanning): `docs/security.md`
 - Reliability controls (checkpoint/restart, recovery assumptions): `docs/reliability.md`
+- Performance qualification and regression gates: `docs/performance.md`
 - PR template: `.github/pull_request_template.md`
 - Issue templates: `.github/ISSUE_TEMPLATE/`
 - Code ownership: `CODEOWNERS`

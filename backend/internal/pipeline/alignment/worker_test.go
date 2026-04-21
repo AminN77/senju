@@ -516,3 +516,45 @@ func TestWorkerHandle_CheckpointResumeAfterInterruption(t *testing.T) {
 		t.Fatalf("unexpected call order %q", got)
 	}
 }
+
+func BenchmarkAlignmentHandle_Throughput(b *testing.B) {
+	repo := newRecordingRepo()
+	runner := &fakeRunner{
+		run: func(_ context.Context, name string, args ...string) (int, error) {
+			if name == "samtools" {
+				out := args[6] // sort -@ N -m XM -o <bam> <sam>
+				if err := os.WriteFile(out, []byte("bench-bam"), 0o644); err != nil {
+					return -1, err
+				}
+				return 0, nil
+			}
+			if name == "bwa" {
+				samOut := args[4]
+				if err := os.WriteFile(samOut, []byte("bench-sam"), 0o644); err != nil {
+					return -1, err
+				}
+				return 0, nil
+			}
+			return -1, errors.New("unexpected command")
+		},
+	}
+	w, err := NewWorker(repo, runner, zerolog.Nop(), Config{DefaultTimeout: time.Second}, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		j, err := repo.Create(context.Background(), job.CreateParams{Status: job.StatusPending, Stage: "queued"})
+		if err != nil {
+			b.Fatal(err)
+		}
+		bamPath := filepath.Join(b.TempDir(), uuid.NewString()+".bam")
+		payload := `{"reference_path":"/ref.fa","read1_path":"/r1","read2_path":"/r2","output_bam_path":"` + bamPath + `"}`
+		if err := w.Handle(context.Background(), queue.Message{
+			JobID:   j.ID.String(),
+			Payload: json.RawMessage(payload),
+		}); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

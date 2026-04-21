@@ -139,3 +139,26 @@ func TestGetVariants_503_NoService(t *testing.T) {
 		t.Fatalf("body %s", w.Body.String())
 	}
 }
+
+func BenchmarkGetVariants_Latency(b *testing.B) {
+	gin.SetMode(gin.ReleaseMode)
+	svc := &fakeService{
+		res: QueryResult{
+			Rows: []QueryRow{
+				{Chromosome: "chr1", Position: 123, Ref: "A", Alt: "T", Filter: "PASS", Info: "GENE=TP53", Gene: "TP53"},
+			},
+			Total: 1, Page: 1, PageSize: 50,
+		},
+	}
+	r := gin.New()
+	Register(r.Group("/v1"), svc)
+	req := httptest.NewRequest(http.MethodGet, "/v1/variants?page=1&page_size=50", nil)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req.Clone(context.Background()))
+		if w.Code != http.StatusOK {
+			b.Fatalf("status %d", w.Code)
+		}
+	}
+}
