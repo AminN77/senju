@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -24,9 +25,37 @@ func (f fakeRunner) Run(ctx context.Context, args ...string) (int, error) {
 	return f.run(ctx, args...)
 }
 
+type recordingRepo struct {
+	base *stub.Repository
+
+	mu             sync.Mutex
+	updateStatuses []job.Status
+	updateCtxErrs  []error
+}
+
+func newRecordingRepo() *recordingRepo {
+	return &recordingRepo{base: stub.New()}
+}
+
+func (r *recordingRepo) Create(ctx context.Context, p job.CreateParams) (*job.Job, error) {
+	return r.base.Create(ctx, p)
+}
+
+func (r *recordingRepo) GetByID(ctx context.Context, id uuid.UUID) (*job.Job, error) {
+	return r.base.GetByID(ctx, id)
+}
+
+func (r *recordingRepo) Update(ctx context.Context, id uuid.UUID, p job.UpdateParams) (*job.Job, error) {
+	r.mu.Lock()
+	r.updateStatuses = append(r.updateStatuses, p.Status)
+	r.updateCtxErrs = append(r.updateCtxErrs, ctx.Err())
+	r.mu.Unlock()
+	return r.base.Update(ctx, id, p)
+}
+
 func TestWorkerHandle_SuccessStoresArtifactsAndLogs(t *testing.T) {
 	t.Parallel()
-	repo := stub.New()
+	repo := newRecordingRepo()
 	created, err := repo.Create(context.Background(), job.CreateParams{
 		Status: job.StatusPending,
 		Stage:  "queued",
@@ -81,7 +110,7 @@ func TestWorkerHandle_SuccessStoresArtifactsAndLogs(t *testing.T) {
 
 func TestWorkerHandle_TimeoutAndCancellationEnforced(t *testing.T) {
 	t.Parallel()
-	repo := stub.New()
+	repo := newRecordingRepo()
 	created, err := repo.Create(context.Background(), job.CreateParams{
 		Status: job.StatusPending,
 		Stage:  "queued",
@@ -107,6 +136,18 @@ func TestWorkerHandle_TimeoutAndCancellationEnforced(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected deadline exceeded, got %v", err)
 	}
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	if len(repo.updateStatuses) != 2 {
+		t.Fatalf("expected 2 updates, got %d", len(repo.updateStatuses))
+	}
+	if repo.updateStatuses[1] != job.StatusFailed {
+		t.Fatalf("second update status = %s", repo.updateStatuses[1])
+	}
+	if repo.updateCtxErrs[1] != nil {
+		t.Fatalf("completion update used expired context: %v", repo.updateCtxErrs[1])
+	}
+
 	updated, err := repo.GetByID(context.Background(), created.ID)
 	if err != nil {
 		t.Fatal(err)
@@ -121,7 +162,7 @@ func TestWorkerHandle_TimeoutAndCancellationEnforced(t *testing.T) {
 
 func TestWorkerHandle_InvalidPayload(t *testing.T) {
 	t.Parallel()
-	repo := stub.New()
+	repo := newRecordingRepo()
 	worker, err := NewWorker(repo, fakeRunner{
 		run: func(_ context.Context, _ ...string) (int, error) { return 0, nil },
 	}, zerolog.Nop(), Config{})

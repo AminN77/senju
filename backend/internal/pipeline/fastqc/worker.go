@@ -127,7 +127,7 @@ func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 		return fmt.Errorf("fastqc worker: output_ref: %w", marshalErr)
 	}
 
-	if _, err := w.repo.Update(runCtx, jobID, job.UpdateParams{
+	if _, err := w.repo.Update(ctx, jobID, job.UpdateParams{
 		Status:      status,
 		Stage:       stage,
 		CompletedAt: &completed,
