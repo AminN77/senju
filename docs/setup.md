@@ -58,6 +58,10 @@ After migrations and with Postgres reachable, the API can register FASTQ ingesti
 
 Variant retrieval with filters/pagination is documented in [docs/api/variant-query.md](./api/variant-query.md).
 
+## Pipeline orchestration API
+
+Create/run/status/output orchestration endpoints are documented in [docs/api/orchestration.md](./api/orchestration.md).
+
 ## Queue semantics (NATS + retries)
 
 Queue retry/dead-letter behavior and env configuration are documented in [docs/pipeline/nats-queue.md](./pipeline/nats-queue.md).

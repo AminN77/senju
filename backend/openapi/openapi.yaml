@@ -188,6 +188,167 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
+  /v1/jobs/pipeline:
+    post:
+      tags:
+        - Ingestion
+      summary: Create a pipeline orchestration job
+      description: |
+        Creates a job record for end-to-end pipeline orchestration in a queued state.
+      operationId: postPipelineJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PipelineCreateRequest"
+      responses:
+        "201":
+          description: Pipeline job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineCreateResponse"
+        "400":
+          description: Malformed JSON or validation failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Persistence failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Database not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+  /v1/jobs/{job_id}/run:
+    post:
+      tags:
+        - Ingestion
+      summary: Run pipeline orchestration for a job
+      description: |
+        Executes orchestration state transitions for a queued job and stores auditable output metadata.
+      operationId: postPipelineRun
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Pipeline run finished
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineRunResponse"
+        "400":
+          description: Invalid job_id or unknown job
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "409":
+          description: Job not in runnable state
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Persistence or orchestration failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Database not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+  /v1/jobs/{job_id}/status:
+    get:
+      tags:
+        - Ingestion
+      summary: Fetch orchestration job status
+      operationId: getPipelineJobStatus
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Current orchestration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineStatusResponse"
+        "400":
+          description: Invalid job_id or unknown job
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Persistence failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Database not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+  /v1/jobs/{job_id}/outputs:
+    get:
+      tags:
+        - Ingestion
+      summary: Retrieve orchestration job outputs
+      operationId: getPipelineJobOutputs
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Output reference payload for the orchestration run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PipelineOutputsResponse"
+        "400":
+          description: Invalid job_id or unknown job
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Persistence failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Database not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
   /v1/objects/multipart:
     post:
       tags:
@@ -469,6 +630,88 @@ components:
           type: integer
           format: int64
           description: One-based record index for the failure, when available.
+    PipelineCreateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - sample_id
+        - r1_uri
+        - r2_uri
+      properties:
+        sample_id:
+          type: string
+          minLength: 1
+        r1_uri:
+          type: string
+          minLength: 1
+        r2_uri:
+          type: string
+          minLength: 1
+        force_fail:
+          type: boolean
+          description: Test hook to force a controlled orchestration failure.
+    PipelineCreateResponse:
+      type: object
+      required:
+        - job_id
+      properties:
+        job_id:
+          type: string
+          format: uuid
+    PipelineRunResponse:
+      type: object
+      required:
+        - job_id
+        - status
+        - stage
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, running, succeeded, failed, cancelled]
+        stage:
+          type: string
+    PipelineStatusResponse:
+      type: object
+      required:
+        - job_id
+        - status
+        - stage
+        - updated_at
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, running, succeeded, failed, cancelled]
+        stage:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PipelineOutputsResponse:
+      type: object
+      required:
+        - job_id
+        - output_ref
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        output_ref:
+          description: Opaque orchestration output payload persisted on the job.
+          type: object
+          additionalProperties: true
+          nullable: true
     VariantRecord:
       type: object
       required:
