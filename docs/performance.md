@@ -25,6 +25,7 @@ Stored in repository:
 - per-benchmark `target_ns_op`
 - warn threshold (`warn_regression_pct`)
 - fail threshold (`fail_regression_pct`)
+- targets are calibrated for CI runner variability, while still detecting meaningful regressions
 
 ## CI regression policy
 

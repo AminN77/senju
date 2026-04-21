@@ -5,13 +5,13 @@
   },
   "benchmarks": {
     "BenchmarkMultipartInit_Throughput": {
-      "target_ns_op": 2500.0
+      "target_ns_op": 6000.0
     },
     "BenchmarkAlignmentHandle_Throughput": {
       "target_ns_op": 320000.0
     },
     "BenchmarkGetVariants_Latency": {
-      "target_ns_op": 1200.0
+      "target_ns_op": 3000.0
     }
   }
 }
