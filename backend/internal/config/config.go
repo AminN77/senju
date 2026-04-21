@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Config holds runtime settings for the API process and readiness wiring.
@@ -24,6 +25,7 @@ type Config struct {
 
 	// ObjectStore configures S3-compatible multipart uploads (e.g. MinIO). See ObjectStoreConfig.Enabled.
 	ObjectStore ObjectStoreConfig
+	Queue       QueueConfig
 }
 
 // ObjectStoreConfig holds S3-compatible API settings for presigned multipart uploads.
@@ -35,6 +37,16 @@ type ObjectStoreConfig struct {
 	AccessKey    string
 	SecretKey    string
 	UsePathStyle bool
+}
+
+// QueueConfig defines NATS/JetStream queue behavior for worker retries.
+type QueueConfig struct {
+	StreamName   string
+	Subject      string
+	DeadLetter   string
+	ConsumerName string
+	MaxRetries   int
+	BackoffBase  time.Duration
 }
 
 // Enabled reports whether object multipart routes should call the object store (vs 503).
@@ -89,6 +101,15 @@ func Load() (Config, error) {
 		endpoint = strings.TrimSpace(os.Getenv("MINIO_S3_ENDPOINT"))
 	}
 
+	queueMaxRetries, err := parseIntEnv("QUEUE_MAX_RETRIES", 3)
+	if err != nil {
+		return Config{}, err
+	}
+	queueBackoffBase, err := parseDurationEnv("QUEUE_BACKOFF_BASE", 1*time.Second)
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		APIPort:        port,
 		LogLevel:       os.Getenv("LOG_LEVEL"),
@@ -103,6 +124,14 @@ func Load() (Config, error) {
 			AccessKey:    accessKey,
 			SecretKey:    secretKey,
 			UsePathStyle: usePathStyle,
+		},
+		Queue: QueueConfig{
+			StreamName:   getenvDefaultTrim("QUEUE_STREAM_NAME", "jobs_stream"),
+			Subject:      getenvDefaultTrim("QUEUE_SUBJECT", "jobs.execute"),
+			DeadLetter:   getenvDefaultTrim("QUEUE_DEAD_LETTER_SUBJECT", "jobs.dead_letter"),
+			ConsumerName: getenvDefaultTrim("QUEUE_CONSUMER_NAME", "jobs_worker"),
+			MaxRetries:   queueMaxRetries,
+			BackoffBase:  queueBackoffBase,
 		},
 	}, nil
 }
@@ -137,4 +166,36 @@ func getenvDefault(key, def string) string {
 		return v
 	}
 	return def
+}
+
+func getenvDefaultTrim(key, def string) string {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v != "" {
+		return v
+	}
+	return def
+}
+
+func parseIntEnv(key string, def int) (int, error) {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return def, nil
+	}
+	i, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, fmt.Errorf("%s: parse int: %w", key, err)
+	}
+	return i, nil
+}
+
+func parseDurationEnv(key string, def time.Duration) (time.Duration, error) {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return def, nil
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return 0, fmt.Errorf("%s: parse duration: %w", key, err)
+	}
+	return d, nil
 }

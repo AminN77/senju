@@ -30,3 +30,7 @@
   - `docs/adr/0001-queue-system-strategy.md`
   - `docs/adr/0002-database-split-postgres-clickhouse.md`
   - `docs/adr/0003-workflow-orchestration-strategy.md`
+
+## Pipeline queue
+
+- NATS/JetStream queue package with retry + dead-letter semantics: `docs/pipeline/nats-queue.md`
