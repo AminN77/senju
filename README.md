@@ -42,3 +42,4 @@
 
 - ClickHouse variant schema and VCF ingestion loader: `docs/data/variants.md`
 - Variant query API with filters and pagination: `docs/api/variant-query.md`
+- Pipeline orchestration API (create/run/status/outputs): `docs/api/orchestration.md`

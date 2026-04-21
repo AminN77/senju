@@ -12,6 +12,7 @@ import (
 
 	"github.com/AminN77/senju/backend/internal/api/fastqupload"
 	"github.com/AminN77/senju/backend/internal/api/objectupload"
+	"github.com/AminN77/senju/backend/internal/api/orchestration"
 	"github.com/AminN77/senju/backend/internal/api/variantquery"
 	"github.com/AminN77/senju/backend/internal/healthcheck"
 	"github.com/AminN77/senju/backend/internal/job"
@@ -67,6 +68,7 @@ func Register(r *gin.Engine, opts Options) {
 	r.GET("/", handleRoot)
 	r.GET("/metrics", gin.WrapH(opts.Metrics))
 	fastqupload.Register(r.Group("/v1/jobs"), opts.Jobs)
+	orchestration.Register(r.Group("/v1/jobs"), opts.Jobs)
 	objectupload.Register(r.Group("/v1/objects"), opts.ObjectStore, opts.Log)
 	variantquery.Register(r.Group("/v1"), opts.VariantQuery)
 	registerOpenAPISpecRoute(r)
