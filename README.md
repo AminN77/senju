@@ -37,3 +37,7 @@
 - FastQC worker stage implementation: `backend/internal/pipeline/fastqc`
 - BWA + SAMtools alignment worker stage implementation: `backend/internal/pipeline/alignment`
 - GATK variant-calling worker stage implementation: `backend/internal/pipeline/gatk`
+
+## Variant analytics storage
+
+- ClickHouse variant schema and VCF ingestion loader: `docs/data/variants.md`
