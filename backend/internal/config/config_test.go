@@ -76,6 +76,7 @@ func TestLoad_ClickHousePingOnlyWhenBaseSet(t *testing.T) {
 
 	t.Run("empty base", func(t *testing.T) {
 		t.Setenv("CLICKHOUSE_HTTP_URL", "")
+		t.Setenv("CLICKHOUSE_DSN", "")
 		cfg, err := Load()
 		if err != nil {
 			t.Fatal(err)
@@ -83,16 +84,39 @@ func TestLoad_ClickHousePingOnlyWhenBaseSet(t *testing.T) {
 		if cfg.ClickHousePing != "" {
 			t.Fatalf("got %q", cfg.ClickHousePing)
 		}
+		if cfg.ClickHouseDSN != "" {
+			t.Fatalf("got %q", cfg.ClickHouseDSN)
+		}
 	})
 
 	t.Run("with base", func(t *testing.T) {
 		t.Setenv("CLICKHOUSE_HTTP_URL", "http://localhost:8123")
+		t.Setenv("CLICKHOUSE_NATIVE_PORT", "9000")
+		t.Setenv("CLICKHOUSE_USER", "default")
+		t.Setenv("CLICKHOUSE_PASSWORD", "pass")
+		t.Setenv("CLICKHOUSE_DB", "senju")
+		t.Setenv("CLICKHOUSE_DSN", "")
 		cfg, err := Load()
 		if err != nil {
 			t.Fatal(err)
 		}
 		if want := "http://localhost:8123/ping"; cfg.ClickHousePing != want {
 			t.Fatalf("got %q want %q", cfg.ClickHousePing, want)
+		}
+		if !strings.Contains(cfg.ClickHouseDSN, "clickhouse://default:pass@localhost:9000/senju") {
+			t.Fatalf("dsn %q", cfg.ClickHouseDSN)
+		}
+	})
+
+	t.Run("explicit dsn overrides base", func(t *testing.T) {
+		t.Setenv("CLICKHOUSE_HTTP_URL", "http://localhost:8123")
+		t.Setenv("CLICKHOUSE_DSN", "clickhouse://u:p@localhost:9000/db")
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.ClickHouseDSN != "clickhouse://u:p@localhost:9000/db" {
+			t.Fatalf("dsn %q", cfg.ClickHouseDSN)
 		}
 	})
 }

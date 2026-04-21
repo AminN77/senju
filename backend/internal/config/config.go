@@ -20,6 +20,7 @@ type Config struct {
 
 	PostgresDSN    string
 	ClickHousePing string
+	ClickHouseDSN  string
 	MinIOHealthURL string
 	NATSAddr       string
 
@@ -73,6 +74,10 @@ func Load() (Config, error) {
 	if chBase != "" {
 		chPing = chBase + "/ping"
 	}
+	chDSN, err := clickHouseDSN(chBase)
+	if err != nil {
+		return Config{}, err
+	}
 
 	region := strings.TrimSpace(os.Getenv("S3_REGION"))
 	if region == "" {
@@ -115,6 +120,7 @@ func Load() (Config, error) {
 		LogLevel:       os.Getenv("LOG_LEVEL"),
 		PostgresDSN:    postgresDSN(),
 		ClickHousePing: chPing,
+		ClickHouseDSN:  chDSN,
 		MinIOHealthURL: strings.TrimSpace(os.Getenv("MINIO_HEALTH_URL")),
 		NATSAddr:       strings.TrimSpace(os.Getenv("NATS_ADDR")),
 		ObjectStore: ObjectStoreConfig{
@@ -134,6 +140,35 @@ func Load() (Config, error) {
 			BackoffBase:  queueBackoffBase,
 		},
 	}, nil
+}
+
+func clickHouseDSN(chBase string) (string, error) {
+	if dsn := strings.TrimSpace(os.Getenv("CLICKHOUSE_DSN")); dsn != "" {
+		return dsn, nil
+	}
+	if chBase == "" {
+		return "", nil
+	}
+	u, err := url.Parse(chBase)
+	if err != nil {
+		return "", fmt.Errorf("CLICKHOUSE_HTTP_URL: parse: %w", err)
+	}
+	host := strings.TrimSpace(u.Hostname())
+	if host == "" {
+		return "", errors.New("CLICKHOUSE_HTTP_URL: hostname is required")
+	}
+	port := getenvDefaultTrim("CLICKHOUSE_NATIVE_PORT", "9000")
+	user := getenvDefaultTrim("CLICKHOUSE_USER", "default")
+	pass := strings.TrimSpace(os.Getenv("CLICKHOUSE_PASSWORD"))
+	db := getenvDefaultTrim("CLICKHOUSE_DB", "default")
+
+	out := &url.URL{
+		Scheme: "clickhouse",
+		User:   url.UserPassword(user, pass),
+		Host:   net.JoinHostPort(host, port),
+		Path:   "/" + db,
+	}
+	return out.String(), nil
 }
 
 func postgresDSN() string {

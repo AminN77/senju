@@ -54,6 +54,10 @@ Use the same environment variables as in `.env` (`POSTGRES_*` or `POSTGRES_DSN`)
 
 After migrations and with Postgres reachable, the API can register FASTQ ingestion jobs. See [docs/api/fastq-upload.md](./api/fastq-upload.md).
 
+## Variant query API
+
+Variant retrieval with filters/pagination is documented in [docs/api/variant-query.md](./api/variant-query.md).
+
 ## Queue semantics (NATS + retries)
 
 Queue retry/dead-letter behavior and env configuration are documented in [docs/pipeline/nats-queue.md](./pipeline/nats-queue.md).
