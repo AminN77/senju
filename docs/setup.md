@@ -70,6 +70,10 @@ JWT auth/RBAC, secret handling, and rotation guidance are documented in [docs/se
 
 Queue retry/dead-letter behavior and env configuration are documented in [docs/pipeline/nats-queue.md](./pipeline/nats-queue.md).
 
+## Reliability controls
+
+Checkpoint/restart behavior and recovery assumptions are documented in [docs/reliability.md](./reliability.md).
+
 ## Observability baseline
 
 Monitoring/logging stack setup (Prometheus, Loki, Grafana) is documented in [docs/observability.md](./observability.md).

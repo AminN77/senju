@@ -103,6 +103,11 @@ type payload struct {
 	MemoryLimitMB  int    `json:"memory_limit_mb,omitempty"`
 }
 
+type checkpoint struct {
+	Version int    `json:"version"`
+	SAMPath string `json:"sam_path"`
+}
+
 // Handle executes alignment for one queued job message.
 func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 	jobID, err := uuid.Parse(msg.JobID)
@@ -191,19 +196,42 @@ func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 }
 
 func (w *Worker) runPipeline(ctx context.Context, p payload, threads, memMB int) (int, error) {
-	tmpSAMPath := filepath.Join(os.TempDir(), "senju-align-"+uuid.NewString()+".sam")
-	defer func() { _ = os.Remove(tmpSAMPath) }()
-
-	bwaArgs := []string{
-		"mem",
-		"-t", fmt.Sprintf("%d", threads),
-		"-o", tmpSAMPath,
-		p.ReferencePath,
-		p.Read1Path,
-		p.Read2Path,
+	cpPath := checkpointPathForBAM(p.OutputBAMPath)
+	cp, err := readCheckpoint(cpPath)
+	if err != nil {
+		return -1, fmt.Errorf("alignment worker: read checkpoint: %w", err)
 	}
-	if code, err := w.runner.Run(ctx, "bwa", bwaArgs...); err != nil {
-		return code, err
+	tmpSAMPath := cp.SAMPath
+	if tmpSAMPath == "" {
+		tmpSAMPath = filepath.Join(os.TempDir(), "senju-align-"+uuid.NewString()+".sam")
+	}
+	completed := false
+	defer func() {
+		if !completed {
+			return
+		}
+		_ = os.Remove(tmpSAMPath)
+		_ = os.Remove(cpPath)
+	}()
+
+	if cp.SAMPath == "" {
+		bwaArgs := []string{
+			"mem",
+			"-t", fmt.Sprintf("%d", threads),
+			"-o", tmpSAMPath,
+			p.ReferencePath,
+			p.Read1Path,
+			p.Read2Path,
+		}
+		if code, err := w.runner.Run(ctx, "bwa", bwaArgs...); err != nil {
+			return code, err
+		}
+		if err := writeCheckpoint(cpPath, checkpoint{
+			Version: 1,
+			SAMPath: tmpSAMPath,
+		}); err != nil {
+			return -1, fmt.Errorf("alignment worker: write checkpoint: %w", err)
+		}
 	}
 
 	samtoolsArgs := []string{
@@ -214,7 +242,47 @@ func (w *Worker) runPipeline(ctx context.Context, p payload, threads, memMB int)
 		tmpSAMPath,
 	}
 	code, err := w.runner.Run(ctx, "samtools", samtoolsArgs...)
+	if err == nil {
+		completed = true
+	}
 	return code, err
+}
+
+func checkpointPathForBAM(outputBAMPath string) string {
+	return outputBAMPath + ".checkpoint.json"
+}
+
+func readCheckpoint(path string) (checkpoint, error) {
+	// #nosec G304 -- path is derived from validated output_bam_path worker payload/config.
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return checkpoint{}, nil
+		}
+		return checkpoint{}, err
+	}
+	var cp checkpoint
+	if err := json.Unmarshal(raw, &cp); err != nil {
+		return checkpoint{}, err
+	}
+	if cp.Version != 1 || cp.SAMPath == "" {
+		return checkpoint{}, errors.New("invalid checkpoint")
+	}
+	if _, err := os.Stat(cp.SAMPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return checkpoint{}, nil
+		}
+		return checkpoint{}, err
+	}
+	return cp, nil
+}
+
+func writeCheckpoint(path string, cp checkpoint) error {
+	body, err := json.Marshal(cp)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, body, 0o600)
 }
 
 func (w *Worker) persistTerminalFailure(ctx context.Context, jobID uuid.UUID, exitCode int, p payload, threads, memMB int, failure error) error {
