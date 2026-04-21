@@ -22,6 +22,7 @@ import (
 	"github.com/AminN77/senju/backend/internal/platform/logging"
 	"github.com/AminN77/senju/backend/internal/platform/metrics"
 	"github.com/AminN77/senju/backend/internal/probe/httpget"
+	"github.com/AminN77/senju/backend/internal/security"
 	"github.com/AminN77/senju/backend/internal/variant/clickhouse"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -47,6 +48,10 @@ func run() error {
 
 	log := logging.New(cfg.LogLevel)
 	log.Info().Str("gin_mode", gin.Mode()).Msg("gin mode")
+	authz, err := security.NewJWTAuthorizer(cfg.Auth.JWTSecret, cfg.Auth.JWTIssuer)
+	if err != nil {
+		return fmt.Errorf("security authorizer: %w", err)
+	}
 
 	runner := healthcheck.NewRunner()
 	if err := registerReadinessProbes(runner, cfg, httpget.DefaultClient()); err != nil {
@@ -102,7 +107,7 @@ func run() error {
 		}
 	}()
 
-	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo, objStore, variantQuery)
+	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo, objStore, variantQuery, authz)
 	addr := listenAddr(cfg.APIPort)
 
 	srv := &http.Server{
@@ -168,7 +173,7 @@ func listenAddr(port int) string {
 	return ":" + strconv.Itoa(port)
 }
 
-func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository, store objectstore.Service, variants variantquery.Service) *gin.Engine {
+func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository, store objectstore.Service, variants variantquery.Service, auth security.Authorizer) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(httpserver.RequestLogger(log))
@@ -181,6 +186,7 @@ func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver ht
 		Log:             log,
 		ObjectStore:     store,
 		VariantQuery:    variants,
+		Auth:            auth,
 	})
 	return r
 }

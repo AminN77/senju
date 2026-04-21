@@ -62,6 +62,10 @@ Variant retrieval with filters/pagination is documented in [docs/api/variant-que
 
 Create/run/status/output orchestration endpoints are documented in [docs/api/orchestration.md](./api/orchestration.md).
 
+## Security baseline
+
+JWT auth/RBAC, secret handling, and rotation guidance are documented in [docs/security.md](./security.md).
+
 ## Queue semantics (NATS + retries)
 
 Queue retry/dead-letter behavior and env configuration are documented in [docs/pipeline/nats-queue.md](./pipeline/nats-queue.md).

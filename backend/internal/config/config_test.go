@@ -238,3 +238,40 @@ func TestLoad_QueueDefaultsAndOverrides(t *testing.T) {
 		}
 	})
 }
+
+func TestLoad_AuthDefaultsAndOverrides(t *testing.T) {
+	t.Setenv("API_PORT", "8080")
+	t.Setenv("POSTGRES_HOST", "")
+	t.Setenv("POSTGRES_DSN", "")
+	t.Setenv("CLICKHOUSE_HTTP_URL", "")
+
+	t.Run("defaults", func(t *testing.T) {
+		t.Setenv("JWT_SECRET", "")
+		t.Setenv("JWT_ISSUER", "")
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Auth.JWTSecret != "" {
+			t.Fatalf("secret got %q", cfg.Auth.JWTSecret)
+		}
+		if cfg.Auth.JWTIssuer != "senju-api" {
+			t.Fatalf("issuer got %q", cfg.Auth.JWTIssuer)
+		}
+	})
+
+	t.Run("overrides", func(t *testing.T) {
+		t.Setenv("JWT_SECRET", "super-secret")
+		t.Setenv("JWT_ISSUER", "issuer-x")
+		cfg, err := Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.Auth.JWTSecret != "super-secret" {
+			t.Fatalf("secret got %q", cfg.Auth.JWTSecret)
+		}
+		if cfg.Auth.JWTIssuer != "issuer-x" {
+			t.Fatalf("issuer got %q", cfg.Auth.JWTIssuer)
+		}
+	})
+}

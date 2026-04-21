@@ -27,6 +27,7 @@ type Config struct {
 	// ObjectStore configures S3-compatible multipart uploads (e.g. MinIO). See ObjectStoreConfig.Enabled.
 	ObjectStore ObjectStoreConfig
 	Queue       QueueConfig
+	Auth        AuthConfig
 }
 
 // ObjectStoreConfig holds S3-compatible API settings for presigned multipart uploads.
@@ -48,6 +49,12 @@ type QueueConfig struct {
 	ConsumerName string
 	MaxRetries   int
 	BackoffBase  time.Duration
+}
+
+// AuthConfig defines JWT authentication settings.
+type AuthConfig struct {
+	JWTSecret string
+	JWTIssuer string
 }
 
 // Enabled reports whether object multipart routes should call the object store (vs 503).
@@ -138,6 +145,10 @@ func Load() (Config, error) {
 			ConsumerName: getenvDefaultTrim("QUEUE_CONSUMER_NAME", "jobs_worker"),
 			MaxRetries:   queueMaxRetries,
 			BackoffBase:  queueBackoffBase,
+		},
+		Auth: AuthConfig{
+			JWTSecret: strings.TrimSpace(os.Getenv("JWT_SECRET")),
+			JWTIssuer: getenvDefaultTrim("JWT_ISSUER", "senju-api"),
 		},
 	}, nil
 }

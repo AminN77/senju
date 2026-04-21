@@ -104,6 +104,8 @@ paths:
     post:
       tags:
         - Ingestion
+      security:
+        - bearerAuth: []
       summary: Register FASTQ upload metadata
       description: |
         Validates paired-end FASTQ ingestion metadata and persists a `jobs` row (`stage=fastq_upload_queued`).
@@ -144,6 +146,8 @@ paths:
     post:
       tags:
         - Ingestion
+      security:
+        - bearerAuth: []
       summary: Validate FASTQ stream and persist result
       description: |
         Streams FASTQ content from the request body, validates format incrementally with bounded memory,
@@ -192,6 +196,8 @@ paths:
     post:
       tags:
         - Ingestion
+      security:
+        - bearerAuth: []
       summary: Create a pipeline orchestration job
       description: |
         Creates a job record for end-to-end pipeline orchestration in a queued state.
@@ -231,6 +237,8 @@ paths:
     post:
       tags:
         - Ingestion
+      security:
+        - bearerAuth: []
       summary: Run pipeline orchestration for a job
       description: |
         Executes orchestration state transitions for a queued job and stores auditable output metadata.
@@ -277,6 +285,8 @@ paths:
     get:
       tags:
         - Ingestion
+      security:
+        - bearerAuth: []
       summary: Fetch orchestration job status
       operationId: getPipelineJobStatus
       parameters:
@@ -315,6 +325,8 @@ paths:
     get:
       tags:
         - Ingestion
+      security:
+        - bearerAuth: []
       summary: Retrieve orchestration job outputs
       operationId: getPipelineJobOutputs
       parameters:
@@ -353,6 +365,8 @@ paths:
     post:
       tags:
         - Object storage
+      security:
+        - bearerAuth: []
       summary: Start multipart upload
       description: |
         Creates an S3 multipart upload and returns the object key, upload ID, and recommended part size (64 MiB).
@@ -393,6 +407,8 @@ paths:
     post:
       tags:
         - Object storage
+      security:
+        - bearerAuth: []
       summary: Presign multipart part upload
       description: Returns a presigned PUT URL for one part. Client uploads bytes to that URL, then collects ETag from the response.
       operationId: postObjectMultipartPresignPart
@@ -437,6 +453,8 @@ paths:
     post:
       tags:
         - Object storage
+      security:
+        - bearerAuth: []
       summary: Complete multipart upload
       description: |
         Completes the multipart upload with part ETags, verifies the object via HeadObject, and emits an audit log line
@@ -483,6 +501,8 @@ paths:
     get:
       tags:
         - Ingestion
+      security:
+        - bearerAuth: []
       summary: Query variants with filters and pagination
       description: |
         Queries variant rows stored in ClickHouse with optional chromosome, position range, and gene filters.
@@ -558,6 +578,11 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     VersionInfo:
       type: object
