@@ -12,9 +12,11 @@ import (
 
 	"github.com/AminN77/senju/backend/internal/api/fastqupload"
 	"github.com/AminN77/senju/backend/internal/api/objectupload"
+	"github.com/AminN77/senju/backend/internal/api/variantquery"
 	"github.com/AminN77/senju/backend/internal/healthcheck"
 	"github.com/AminN77/senju/backend/internal/job"
 	"github.com/AminN77/senju/backend/internal/objectstore"
+	"github.com/AminN77/senju/backend/internal/variant/clickhouse"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
@@ -39,6 +41,8 @@ type Options struct {
 	Log zerolog.Logger
 	// ObjectStore enables multipart presigned uploads under /v1/objects. If nil, those routes return 503.
 	ObjectStore objectstore.Service
+	// VariantQuery serves variant analytics reads from ClickHouse. If nil, /v1/variants returns 503.
+	VariantQuery clickhouse.QueryService
 }
 
 // VersionInfo is returned by GET /version.
@@ -65,6 +69,7 @@ func Register(r *gin.Engine, opts Options) {
 	r.GET("/metrics", gin.WrapH(opts.Metrics))
 	fastqupload.Register(r.Group("/v1/jobs"), opts.Jobs)
 	objectupload.Register(r.Group("/v1/objects"), opts.ObjectStore, opts.Log)
+	variantquery.Register(r.Group("/v1"), opts.VariantQuery)
 	registerOpenAPISpecRoute(r)
 	if opts.EnableSwaggerUI {
 		registerSwaggerUIRoute(r)

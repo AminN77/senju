@@ -318,6 +318,80 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
+  /v1/variants:
+    get:
+      tags:
+        - Ingestion
+      summary: Query variants with filters and pagination
+      description: |
+        Queries variant rows stored in ClickHouse with optional chromosome, position range, and gene filters.
+        Supports page-based pagination.
+      operationId: getVariants
+      parameters:
+        - name: chromosome
+          in: query
+          schema:
+            type: string
+          description: Exact chromosome value (example `chr1`).
+        - name: position_min
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+          description: Inclusive lower bound for position.
+        - name: position_max
+          in: query
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+          description: Inclusive upper bound for position.
+        - name: gene
+          in: query
+          schema:
+            type: string
+          description: Gene symbol filter extracted from INFO payload (example `TP53`).
+        - name: page
+          in: query
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Paginated variant results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariantQueryResponse"
+        "400":
+          description: Invalid query filters
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Query execution failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Variant query service not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
 components:
   schemas:
     VersionInfo:
@@ -391,6 +465,78 @@ components:
           type: integer
           format: int64
           description: One-based record index for the failure, when available.
+    VariantRecord:
+      type: object
+      required:
+        - chromosome
+        - position
+        - ref
+        - alt
+        - filter
+        - info
+      properties:
+        chromosome:
+          type: string
+        position:
+          type: integer
+          format: int64
+        ref:
+          type: string
+        alt:
+          type: string
+        qual:
+          type: number
+          format: double
+          nullable: true
+        filter:
+          type: string
+        info:
+          type: string
+        gene:
+          type: string
+    VariantQueryFilters:
+      type: object
+      properties:
+        chromosome:
+          type: string
+        position_min:
+          type: integer
+          format: int64
+        position_max:
+          type: integer
+          format: int64
+        gene:
+          type: string
+    VariantQueryResponse:
+      type: object
+      required:
+        - data
+        - page
+        - page_size
+        - total
+        - has_next
+        - filters
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/VariantRecord"
+        page:
+          type: integer
+          format: int32
+        page_size:
+          type: integer
+          format: int32
+        total:
+          type: integer
+          format: int64
+        has_next:
+          type: boolean
+        latency_ms:
+          type: integer
+          format: int64
+        filters:
+          $ref: "#/components/schemas/VariantQueryFilters"
     MultipartInitRequest:
       type: object
       additionalProperties: false

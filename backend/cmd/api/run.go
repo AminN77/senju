@@ -21,6 +21,7 @@ import (
 	"github.com/AminN77/senju/backend/internal/platform/logging"
 	"github.com/AminN77/senju/backend/internal/platform/metrics"
 	"github.com/AminN77/senju/backend/internal/probe/httpget"
+	"github.com/AminN77/senju/backend/internal/variant/clickhouse"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
@@ -84,7 +85,16 @@ func run() error {
 		objStore = s
 	}
 
-	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo, objStore)
+	var variantQuery clickhouse.QueryService
+	if cfg.ClickHouseDSN != "" {
+		repo, err := clickhouse.OpenQueryRepository(cfg.ClickHouseDSN)
+		if err != nil {
+			return fmt.Errorf("clickhouse query repository: %w", err)
+		}
+		variantQuery = repo
+	}
+
+	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo, objStore, variantQuery)
 	addr := listenAddr(cfg.APIPort)
 
 	srv := &http.Server{
@@ -150,7 +160,7 @@ func listenAddr(port int) string {
 	return ":" + strconv.Itoa(port)
 }
 
-func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository, store objectstore.Service) *gin.Engine {
+func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository, store objectstore.Service, variants clickhouse.QueryService) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(httpserver.RequestLogger(log))
@@ -162,6 +172,7 @@ func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver ht
 		Jobs:            jobs,
 		Log:             log,
 		ObjectStore:     store,
+		VariantQuery:    variants,
 	})
 	return r
 }
