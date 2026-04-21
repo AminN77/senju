@@ -15,6 +15,8 @@ import (
 	_ "github.com/ClickHouse/clickhouse-go/v2" // register database/sql clickhouse driver
 )
 
+const batchSize = 2000
+
 const createTableSQL = `
 CREATE TABLE IF NOT EXISTS variants (
     dataset_id String,
@@ -101,6 +103,7 @@ func (l *Loader) LoadVCF(ctx context.Context, datasetID string, r io.Reader) (in
 
 	inserted := 0
 	seenInRun := make(map[string]struct{}, 4096)
+	batch := make([]Variant, 0, batchSize)
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -115,28 +118,99 @@ func (l *Loader) LoadVCF(ctx context.Context, datasetID string, r io.Reader) (in
 				continue
 			}
 			seenInRun[v.SourceKey] = struct{}{}
-			var existing uint64
-			if err := l.db.QueryRowContext(ctx, `
-SELECT count() FROM variants
-WHERE dataset_id = ? AND source_key = ?`, v.DatasetID, v.SourceKey).Scan(&existing); err != nil {
-				return inserted, err
+			batch = append(batch, v)
+			if len(batch) >= batchSize {
+				n, err := l.flushBatch(ctx, datasetID, batch)
+				if err != nil {
+					return inserted, err
+				}
+				inserted += n
+				batch = batch[:0]
 			}
-			if existing > 0 {
-				continue
-			}
-			if _, err := l.db.ExecContext(ctx, `
-INSERT INTO variants (dataset_id, chrom, pos, ref, alt, qual, filter, info, source_key)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				v.DatasetID, v.Chrom, v.Pos, v.Ref, v.Alt, v.Qual, v.Filter, v.Info, v.SourceKey); err != nil {
-				return inserted, err
-			}
-			inserted++
 		}
 	}
 	if err := sc.Err(); err != nil {
 		return inserted, err
 	}
+	if len(batch) > 0 {
+		n, err := l.flushBatch(ctx, datasetID, batch)
+		if err != nil {
+			return inserted, err
+		}
+		inserted += n
+	}
 	return inserted, nil
+}
+
+func (l *Loader) flushBatch(ctx context.Context, datasetID string, batch []Variant) (int, error) {
+	existing, err := l.fetchExistingKeys(ctx, datasetID, batch)
+	if err != nil {
+		return 0, err
+	}
+	toInsert := make([]Variant, 0, len(batch))
+	for _, v := range batch {
+		if _, ok := existing[v.SourceKey]; ok {
+			continue
+		}
+		toInsert = append(toInsert, v)
+	}
+	if len(toInsert) == 0 {
+		return 0, nil
+	}
+	if err := l.insertBatch(ctx, toInsert); err != nil {
+		return 0, err
+	}
+	return len(toInsert), nil
+}
+
+func (l *Loader) fetchExistingKeys(ctx context.Context, datasetID string, batch []Variant) (map[string]struct{}, error) {
+	if len(batch) == 0 {
+		return map[string]struct{}{}, nil
+	}
+	holders := make([]string, 0, len(batch))
+	args := make([]any, 0, len(batch)+1)
+	args = append(args, datasetID)
+	for _, v := range batch {
+		holders = append(holders, "?")
+		args = append(args, v.SourceKey)
+	}
+	// #nosec G202 -- placeholders are generated from constant "?" tokens, values remain parameterized.
+	q := `
+SELECT source_key FROM variants
+WHERE dataset_id = ? AND source_key IN (` + strings.Join(holders, ",") + `)`
+	rows, err := l.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	out := make(map[string]struct{}, len(batch))
+	for rows.Next() {
+		var key string
+		if err := rows.Scan(&key); err != nil {
+			return nil, err
+		}
+		out[key] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (l *Loader) insertBatch(ctx context.Context, batch []Variant) error {
+	holders := make([]string, 0, len(batch))
+	args := make([]any, 0, len(batch)*9)
+	for _, v := range batch {
+		holders = append(holders, "(?, ?, ?, ?, ?, ?, ?, ?, ?)")
+		args = append(args, v.DatasetID, v.Chrom, v.Pos, v.Ref, v.Alt, v.Qual, v.Filter, v.Info, v.SourceKey)
+	}
+	// #nosec G202 -- VALUES placeholder tuples are generated from constant "(?, ...)" tokens only.
+	q := `
+INSERT INTO variants (dataset_id, chrom, pos, ref, alt, qual, filter, info, source_key)
+VALUES ` + strings.Join(holders, ",")
+	_, err := l.db.ExecContext(ctx, q, args...)
+	return err
 }
 
 func parseLine(datasetID, line string) ([]Variant, error) {

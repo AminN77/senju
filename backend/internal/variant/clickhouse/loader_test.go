@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestParseLine(t *testing.T) {
@@ -51,26 +53,25 @@ func TestLoadVCF_IdempotentIntegration(t *testing.T) {
 	if err := l.EnsureSchema(ctx); err != nil {
 		t.Fatal(err)
 	}
-	_, err = l.db.ExecContext(ctx, "ALTER TABLE variants DELETE WHERE dataset_id = ?", "issue13-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	datasetID := "issue13-test-" + uuid.NewString()
 
 	vcf := "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\nchr1\t10\t.\tA\tC\t50\tPASS\tDP=10\nchr1\t10\t.\tA\tC\t50\tPASS\tDP=10\nchr2\t20\t.\tG\tT\t.\tPASS\tDP=5\n"
-	n1, err := l.LoadVCF(ctx, "issue13-test", strings.NewReader(vcf))
+	n1, err := l.LoadVCF(ctx, datasetID, strings.NewReader(vcf))
 	if err != nil {
 		t.Fatal(err)
 	}
-	n2, err := l.LoadVCF(ctx, "issue13-test", strings.NewReader(vcf))
+	n2, err := l.LoadVCF(ctx, datasetID, strings.NewReader(vcf))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if n1 == 0 {
 		t.Fatalf("expected inserts in first load, got %d", n1)
 	}
-	_ = n2
+	if n2 != 0 {
+		t.Fatalf("expected zero inserts on idempotent rerun, got %d", n2)
+	}
 	var count int
-	if err := l.db.QueryRowContext(ctx, "SELECT count() FROM variants WHERE dataset_id = ?", "issue13-test").Scan(&count); err != nil {
+	if err := l.db.QueryRowContext(ctx, "SELECT count() FROM variants WHERE dataset_id = ?", datasetID).Scan(&count); err != nil {
 		t.Fatal(err)
 	}
 	if count != 2 {

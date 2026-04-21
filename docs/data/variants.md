@@ -33,7 +33,7 @@ Package: `backend/internal/variant/clickhouse`
 - Splits multiallelic ALT values (`A,C`) into separate inserted variants.
 - Inserts with duplicate protection:
   - In-run duplicates are skipped via an in-memory seen-set.
-  - Re-run duplicates are skipped via `WHERE NOT EXISTS` check on `(dataset_id, source_key)`.
+  - Re-run duplicates are skipped by batched key lookups (`SELECT source_key ... IN (...)`) against `(dataset_id, source_key)` before batched inserts.
 - Returns inserted row count for observability and test assertions.
 
 ## Running tests and benchmark
