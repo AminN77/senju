@@ -147,8 +147,9 @@ func buildWhere(f QueryFilters) (string, []any) {
 		args = append(args, *f.PositionMax)
 	}
 	if g := strings.TrimSpace(f.Gene); g != "" {
-		clauses = append(clauses, "lower(info) LIKE ?")
-		args = append(args, "%gene="+strings.ToLower(g)+"%")
+		lg := strings.ToLower(g)
+		clauses = append(clauses, "(lower(info) LIKE ? OR lower(info) LIKE ?)")
+		args = append(args, "%gene="+lg+"%", "%gene_symbol="+lg+"%")
 	}
 	if len(clauses) == 0 {
 		return "", args

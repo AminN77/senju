@@ -26,7 +26,7 @@ func TestBuildWhere(t *testing.T) {
 	if !strings.Contains(sql, "chrom = ?") || !strings.Contains(sql, "pos >= ?") || !strings.Contains(sql, "lower(info) LIKE ?") {
 		t.Fatalf("where %q", sql)
 	}
-	if len(args) != 4 {
+	if len(args) != 5 {
 		t.Fatalf("args %+v", args)
 	}
 }
@@ -35,6 +35,9 @@ func TestExtractGene(t *testing.T) {
 	t.Parallel()
 	if got := extractGene("DP=10;GENE=TP53;AF=0.2"); got != "TP53" {
 		t.Fatalf("gene %q", got)
+	}
+	if got := extractGene("DP=10;GENE_SYMBOL=BRCA1;AF=0.2"); got != "BRCA1" {
+		t.Fatalf("gene symbol %q", got)
 	}
 }
 
