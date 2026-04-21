@@ -34,3 +34,4 @@
 ## Pipeline queue
 
 - NATS/JetStream queue package with retry + dead-letter semantics: `docs/pipeline/nats-queue.md`
+- FastQC worker stage implementation: `backend/internal/pipeline/fastqc`

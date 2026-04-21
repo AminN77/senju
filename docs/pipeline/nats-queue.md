@@ -42,3 +42,12 @@ Exponential backoff uses:
 - Message is delivered exactly `max_retries + 1` times.
 - Message is dead-lettered after cap is reached.
 - Test asserts no silent loss by observing a dead-letter event and attempt count.
+
+## FastQC stage worker (Issue #10)
+
+FastQC stage execution worker is implemented in `backend/internal/pipeline/fastqc`.
+
+- Queue message includes `job_id` and payload (`input_path`, `output_dir`, optional report artifact URIs).
+- Worker enforces per-job timeout via `context.WithTimeout` (`timeout_seconds` in payload or default config timeout).
+- Worker updates job state to running/succeeded/failed and persists report artifact metadata in `output_ref`.
+- Stage completion log emits `job_id`, `stage`, `exit_code`, and `duration`.
