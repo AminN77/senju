@@ -151,10 +151,10 @@ func TestWorkerHandle_ConfigurableLimitsApplied(t *testing.T) {
 	if len(runner.call) != 2 {
 		t.Fatalf("calls=%d", len(runner.call))
 	}
-	if strings.Join(runner.call[0].args, " ") != "mem -t 12 /ref.fa /r1 /r2" {
+	if !strings.HasPrefix(strings.Join(runner.call[0].args, " "), "mem -t 12 -o ") || !strings.Contains(strings.Join(runner.call[0].args, " "), " /ref.fa /r1 /r2") {
 		t.Fatalf("bwa args: %v", runner.call[0].args)
 	}
-	if strings.Join(runner.call[1].args, " ") != "sort -@ 12 -m 8192M -o "+bamPath {
+	if !strings.HasPrefix(strings.Join(runner.call[1].args, " "), "sort -@ 12 -m 8192M -o "+bamPath+" ") {
 		t.Fatalf("samtools args: %v", runner.call[1].args)
 	}
 }
@@ -234,8 +234,8 @@ func TestWorkerHandle_TimeoutFailure(t *testing.T) {
 		JobID:   created.ID.String(),
 		Payload: json.RawMessage(payload),
 	})
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Fatalf("expected deadline, got %v", err)
+	if err != nil {
+		t.Fatalf("expected nil handle error after terminal persistence, got %v", err)
 	}
 	updated, err := repo.GetByID(context.Background(), created.ID)
 	if err != nil {
@@ -243,5 +243,84 @@ func TestWorkerHandle_TimeoutFailure(t *testing.T) {
 	}
 	if updated.Status != job.StatusFailed || updated.Stage != StageAlignmentFailed {
 		t.Fatalf("job %+v", updated)
+	}
+	if !bytes.Contains(updated.OutputRef, []byte(`"error":"context deadline exceeded"`)) {
+		t.Fatalf("output_ref %s", updated.OutputRef)
+	}
+}
+
+func TestWorkerHandle_FailureCases_TableDriven(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name            string
+		payload         string
+		runner          func(ctx context.Context, name string, args ...string) (int, error)
+		expectHandleErr bool
+		expectStage     string
+		expectStatus    job.Status
+		expectOutputErr bool
+	}{
+		{
+			name:            "invalid payload missing required fields",
+			payload:         `{"reference_path":"/ref.fa","read1_path":"/r1"}`,
+			runner:          func(_ context.Context, _ string, _ ...string) (int, error) { return 0, nil },
+			expectHandleErr: true,
+			expectStage:     StageAlignmentFailed,
+			expectStatus:    job.StatusFailed,
+			expectOutputErr: true,
+		},
+		{
+			name:    "runner non-zero exit persists failure",
+			payload: `{"reference_path":"/ref.fa","read1_path":"/r1","read2_path":"/r2","output_bam_path":"` + `/tmp/out.bam` + `"}`,
+			runner: func(_ context.Context, name string, _ ...string) (int, error) {
+				if name == "bwa" {
+					return 2, errors.New("bwa failed")
+				}
+				return 0, nil
+			},
+			expectHandleErr: false,
+			expectStage:     StageAlignmentFailed,
+			expectStatus:    job.StatusFailed,
+			expectOutputErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			repo := newRecordingRepo()
+			created, err := repo.Create(context.Background(), job.CreateParams{Status: job.StatusPending, Stage: "queued"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			w, err := NewWorker(repo, &fakeRunner{run: tt.runner}, zerolog.Nop(), Config{DefaultTimeout: time.Second})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			handleErr := w.Handle(context.Background(), queue.Message{
+				JobID:   created.ID.String(),
+				Payload: json.RawMessage(tt.payload),
+			})
+			if tt.expectHandleErr && handleErr == nil {
+				t.Fatalf("expected handle error")
+			}
+			if !tt.expectHandleErr && handleErr != nil {
+				t.Fatalf("unexpected handle error: %v", handleErr)
+			}
+
+			updated, err := repo.GetByID(context.Background(), created.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if updated.Stage != tt.expectStage || updated.Status != tt.expectStatus {
+				t.Fatalf("job %+v", updated)
+			}
+			if tt.expectOutputErr && !bytes.Contains(updated.OutputRef, []byte(`"error"`)) {
+				t.Fatalf("output_ref %s", updated.OutputRef)
+			}
+		})
 	}
 }

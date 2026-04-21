@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/AminN77/senju/backend/internal/job"
@@ -108,6 +109,7 @@ func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 	}
 	p, err := decodePayload(msg.Payload)
 	if err != nil {
+		_ = w.persistTerminalFailure(ctx, jobID, -1, payload{}, 0, 0, err)
 		return err
 	}
 	started := time.Now().UTC()
@@ -168,13 +170,19 @@ func (w *Worker) Handle(ctx context.Context, msg queue.Message) error {
 		Dur("duration", duration).
 		Msg("pipeline stage completed")
 
-	return runErr
+	// Terminal stage state is persisted above; acknowledge message to avoid
+	// retrying already-finalized jobs.
+	return nil
 }
 
 func (w *Worker) runPipeline(ctx context.Context, p payload, threads, memMB int) (int, error) {
+	tmpSAMPath := filepath.Join(os.TempDir(), "senju-align-"+uuid.NewString()+".sam")
+	defer func() { _ = os.Remove(tmpSAMPath) }()
+
 	bwaArgs := []string{
 		"mem",
 		"-t", fmt.Sprintf("%d", threads),
+		"-o", tmpSAMPath,
 		p.ReferencePath,
 		p.Read1Path,
 		p.Read2Path,
@@ -188,9 +196,25 @@ func (w *Worker) runPipeline(ctx context.Context, p payload, threads, memMB int)
 		"-@", fmt.Sprintf("%d", threads),
 		"-m", fmt.Sprintf("%dM", memMB),
 		"-o", p.OutputBAMPath,
+		tmpSAMPath,
 	}
 	code, err := w.runner.Run(ctx, "samtools", samtoolsArgs...)
 	return code, err
+}
+
+func (w *Worker) persistTerminalFailure(ctx context.Context, jobID uuid.UUID, exitCode int, p payload, threads, memMB int, failure error) error {
+	outRef, err := buildOutputRef(exitCode, 0, "", p, threads, memMB, failure)
+	if err != nil {
+		return err
+	}
+	completed := time.Now().UTC()
+	_, err = w.repo.Update(ctx, jobID, job.UpdateParams{
+		Status:      job.StatusFailed,
+		Stage:       StageAlignmentFailed,
+		CompletedAt: &completed,
+		OutputRef:   outRef,
+	})
+	return err
 }
 
 func decodePayload(raw json.RawMessage) (payload, error) {
