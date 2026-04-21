@@ -524,6 +524,7 @@ components:
       properties:
         data:
           type: array
+          maxItems: 200
           items:
             $ref: "#/components/schemas/VariantRecord"
         page:

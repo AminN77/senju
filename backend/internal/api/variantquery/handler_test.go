@@ -84,6 +84,34 @@ func TestGetVariants_400_Validation(t *testing.T) {
 	}
 }
 
+func TestGetVariants_400_PositionRangeInvalid(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	Register(r.Group("/v1"), &fakeService{})
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/variants?position_min=100&position_max=50", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var p problem.Problem
+	if err := json.Unmarshal(w.Body.Bytes(), &p); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, e := range p.Errors {
+		if e.Field == "position_range" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected position_range error, got %+v", p.Errors)
+	}
+}
+
 func TestGetVariants_500_QueryError(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)

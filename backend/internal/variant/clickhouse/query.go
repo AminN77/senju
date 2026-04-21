@@ -160,11 +160,12 @@ func extractGene(info string) string {
 	parts := strings.Split(info, ";")
 	for _, p := range parts {
 		p = strings.TrimSpace(p)
-		if strings.HasPrefix(strings.ToUpper(p), "GENE=") {
-			return strings.TrimSpace(strings.TrimPrefix(p, "GENE="))
+		up := strings.ToUpper(p)
+		if strings.HasPrefix(up, "GENE=") {
+			return strings.TrimSpace(p[len("GENE="):])
 		}
-		if strings.HasPrefix(strings.ToUpper(p), "GENE_SYMBOL=") {
-			return strings.TrimSpace(strings.TrimPrefix(p, "GENE_SYMBOL="))
+		if strings.HasPrefix(up, "GENE_SYMBOL=") {
+			return strings.TrimSpace(p[len("GENE_SYMBOL="):])
 		}
 	}
 	return ""

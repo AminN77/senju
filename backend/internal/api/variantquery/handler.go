@@ -2,6 +2,7 @@
 package variantquery
 
 import (
+	"context"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -15,8 +16,13 @@ import (
 
 var safeToken = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 
+// Service is the storage-agnostic dependency required by the handler.
+type Service interface {
+	Query(context.Context, clickhouse.QueryFilters) (clickhouse.QueryResult, error)
+}
+
 // Register mounts GET /variants on the given /v1 group.
-func Register(g *gin.RouterGroup, svc clickhouse.QueryService) {
+func Register(g *gin.RouterGroup, svc Service) {
 	if svc == nil {
 		g.GET("/variants", handleNoService)
 		return
@@ -56,7 +62,7 @@ type variantOut struct {
 	Gene       string   `json:"gene,omitempty"`
 }
 
-func handleQuery(svc clickhouse.QueryService) gin.HandlerFunc {
+func handleQuery(svc Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		filters, errs := parseFilters(c)
 		if len(errs) > 0 {
@@ -66,6 +72,7 @@ func handleQuery(svc clickhouse.QueryService) gin.HandlerFunc {
 		start := time.Now()
 		res, err := svc.Query(c.Request.Context(), filters)
 		if err != nil {
+			_ = c.Error(err)
 			problem.JSON(c, http.StatusInternalServerError, problem.Problem{
 				Type:   problem.TypeInternalError,
 				Title:  "Internal error",

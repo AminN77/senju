@@ -16,7 +16,6 @@ import (
 	"github.com/AminN77/senju/backend/internal/healthcheck"
 	"github.com/AminN77/senju/backend/internal/job"
 	"github.com/AminN77/senju/backend/internal/objectstore"
-	"github.com/AminN77/senju/backend/internal/variant/clickhouse"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
@@ -41,8 +40,8 @@ type Options struct {
 	Log zerolog.Logger
 	// ObjectStore enables multipart presigned uploads under /v1/objects. If nil, those routes return 503.
 	ObjectStore objectstore.Service
-	// VariantQuery serves variant analytics reads from ClickHouse. If nil, /v1/variants returns 503.
-	VariantQuery clickhouse.QueryService
+	// VariantQuery serves variant analytics reads. If nil, /v1/variants returns 503.
+	VariantQuery variantquery.Service
 }
 
 // VersionInfo is returned by GET /version.
