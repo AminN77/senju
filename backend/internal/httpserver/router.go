@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/AminN77/senju/backend/internal/api/fastqupload"
+	"github.com/AminN77/senju/backend/internal/api/mlimpact"
 	"github.com/AminN77/senju/backend/internal/api/objectupload"
 	"github.com/AminN77/senju/backend/internal/api/orchestration"
 	"github.com/AminN77/senju/backend/internal/api/variantquery"
@@ -46,6 +47,8 @@ type Options struct {
 	VariantQuery variantquery.Service
 	// Auth protects upload/run/query APIs with JWT role checks.
 	Auth security.Authorizer
+	// MLImpact serves baseline ML variant impact scoring APIs.
+	MLImpact mlimpact.Service
 }
 
 // VersionInfo is returned by GET /version.
@@ -84,6 +87,8 @@ func Register(r *gin.Engine, opts Options) {
 
 	variantsReader := v1.Group("", opts.Auth.RequireRoles("analyst", "admin"))
 	variantquery.Register(variantsReader, opts.VariantQuery)
+	mlReader := v1.Group("/ml", opts.Auth.RequireRoles("analyst", "admin"))
+	mlimpact.Register(mlReader, opts.Jobs, opts.MLImpact)
 	registerOpenAPISpecRoute(r)
 	if opts.EnableSwaggerUI {
 		registerSwaggerUIRoute(r)

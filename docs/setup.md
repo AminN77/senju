@@ -62,6 +62,10 @@ Variant retrieval with filters/pagination is documented in [docs/api/variant-que
 
 Create/run/status/output orchestration endpoints are documented in [docs/api/orchestration.md](./api/orchestration.md).
 
+## ML impact baseline API
+
+Model training and prediction persistence endpoints are documented in [docs/api/ml-impact.md](./api/ml-impact.md).
+
 ## Security baseline
 
 JWT auth/RBAC, secret handling, and rotation guidance are documented in [docs/security.md](./security.md).

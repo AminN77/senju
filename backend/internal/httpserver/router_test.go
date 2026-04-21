@@ -15,6 +15,9 @@ import (
 
 	"github.com/AminN77/senju/backend/internal/api/variantquery"
 	"github.com/AminN77/senju/backend/internal/healthcheck"
+	"github.com/AminN77/senju/backend/internal/job"
+	"github.com/AminN77/senju/backend/internal/job/stub"
+	"github.com/AminN77/senju/backend/internal/ml/impact"
 	"github.com/AminN77/senju/backend/internal/platform/metrics"
 	"github.com/AminN77/senju/backend/internal/security"
 	"github.com/gin-gonic/gin"
@@ -325,6 +328,36 @@ func (testVariantSvc) Query(_ context.Context, f variantquery.QueryFilters) (var
 	}, Total: 1, Page: f.Page, PageSize: f.PageSize, HasNext: false}, nil
 }
 
+type testMLImpactSvc struct{}
+
+func (testMLImpactSvc) Train(_ context.Context, _ []impact.TrainSample) (impact.Metadata, error) {
+	return impact.Metadata{
+		DatasetHash:    "h",
+		FeatureVersion: impact.FeatureVersion,
+		ModelVersion:   "m1",
+		TrainedAt:      time.Now().UTC().Format(time.RFC3339Nano),
+		SampleCount:    2,
+	}, nil
+}
+
+func (testMLImpactSvc) Predict(_ context.Context, _ impact.PredictInput) (impact.PredictResult, error) {
+	return impact.PredictResult{
+		Score:     0.9,
+		Class:     "deleterious",
+		LatencyMS: 1,
+		Features: map[string]float64{
+			"qual_scaled": 0.9,
+		},
+		Metadata: impact.Metadata{
+			DatasetHash:    "h",
+			FeatureVersion: impact.FeatureVersion,
+			ModelVersion:   "m1",
+			TrainedAt:      time.Now().UTC().Format(time.RFC3339Nano),
+			SampleCount:    2,
+		},
+	}, nil
+}
+
 func TestAuthProtection_VariantsRequiresAnalystRole(t *testing.T) {
 	t.Parallel()
 	authz, err := security.NewJWTAuthorizer("secret", "senju-api")
@@ -339,6 +372,7 @@ func TestAuthProtection_VariantsRequiresAnalystRole(t *testing.T) {
 		Log:             zerolog.Nop(),
 		Auth:            authz,
 		VariantQuery:    testVariantSvc{},
+		MLImpact:        testMLImpactSvc{},
 	}))
 	t.Cleanup(srv.Close)
 
@@ -386,6 +420,75 @@ func TestAuthProtection_VariantsRequiresAnalystRole(t *testing.T) {
 	})
 }
 
+func TestAuthProtection_MLImpactRequiresAnalystRole(t *testing.T) {
+	t.Parallel()
+	authz, err := security.NewJWTAuthorizer("secret", "senju-api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo := mlimpactTestRepo(t)
+	srv := httptest.NewServer(testEngine(Options{
+		Readiness:       healthcheck.NewRunner(),
+		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
+		EnableSwaggerUI: false,
+		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
+		Auth:            authz,
+		MLImpact:        testMLImpactSvc{},
+		Jobs:            repo,
+	}))
+	t.Cleanup(srv.Close)
+	jobID := createMLTestJob(t, repo)
+	body := `{"variant":{"chromosome":"chr1","position":1,"ref":"A","alt":"T","qual":90,"filter":"PASS","gene":"TP53"}}`
+	t.Run("missing token", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, srv.URL+"/v1/ml/impact/"+jobID+"/predict", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := srv.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("status=%d", resp.StatusCode)
+		}
+	})
+	t.Run("wrong role", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, srv.URL+"/v1/ml/impact/"+jobID+"/predict", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+testSignedJWT(t, "secret", "senju-api", "runner"))
+		resp, err := srv.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Fatalf("status=%d", resp.StatusCode)
+		}
+	})
+	t.Run("allowed role", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, srv.URL+"/v1/ml/impact/"+jobID+"/predict", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+testSignedJWT(t, "secret", "senju-api", "analyst"))
+		resp, err := srv.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("status=%d", resp.StatusCode)
+		}
+	})
+}
+
 func testSignedJWT(t *testing.T, secret, issuer, role string) string {
 	t.Helper()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -400,4 +503,21 @@ func testSignedJWT(t *testing.T, secret, issuer, role string) string {
 		t.Fatal(err)
 	}
 	return signed
+}
+
+func mlimpactTestRepo(t *testing.T) job.Repository {
+	t.Helper()
+	return stub.New()
+}
+
+func createMLTestJob(t *testing.T, repo job.Repository) string {
+	t.Helper()
+	j, err := repo.Create(context.Background(), job.CreateParams{
+		Status: job.StatusRunning,
+		Stage:  "pipeline_running",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return j.ID.String()
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/AminN77/senju/backend/internal/httpserver"
 	"github.com/AminN77/senju/backend/internal/job"
 	jobpostgres "github.com/AminN77/senju/backend/internal/job/postgres"
+	"github.com/AminN77/senju/backend/internal/ml/impact"
 	"github.com/AminN77/senju/backend/internal/objectstore"
 	"github.com/AminN77/senju/backend/internal/platform/logging"
 	"github.com/AminN77/senju/backend/internal/platform/metrics"
@@ -107,7 +108,8 @@ func run() error {
 		}
 	}()
 
-	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo, objStore, variantQuery, authz)
+	impactSvc := impact.NewService()
+	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo, objStore, variantQuery, impactSvc, authz)
 	addr := listenAddr(cfg.APIPort)
 
 	srv := &http.Server{
@@ -173,7 +175,7 @@ func listenAddr(port int) string {
 	return ":" + strconv.Itoa(port)
 }
 
-func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository, store objectstore.Service, variants variantquery.Service, auth security.Authorizer) *gin.Engine {
+func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver httpserver.VersionInfo, prom *metrics.Registry, jobs job.Repository, store objectstore.Service, variants variantquery.Service, mlImpact httpserverMLImpactService, auth security.Authorizer) *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(httpserver.RequestLogger(log))
@@ -186,9 +188,15 @@ func newEngine(log zerolog.Logger, readiness httpserver.ReadinessChecker, ver ht
 		Log:             log,
 		ObjectStore:     store,
 		VariantQuery:    variants,
+		MLImpact:        mlImpact,
 		Auth:            auth,
 	})
 	return r
+}
+
+type httpserverMLImpactService interface {
+	Train(context.Context, []impact.TrainSample) (impact.Metadata, error)
+	Predict(context.Context, impact.PredictInput) (impact.PredictResult, error)
 }
 
 type clickhouseVariantQueryAdapter struct {
