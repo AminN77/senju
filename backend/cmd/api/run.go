@@ -86,13 +86,20 @@ func run() error {
 	}
 
 	var variantQuery clickhouse.QueryService
+	var variantRepo *clickhouse.QueryRepository
 	if cfg.ClickHouseDSN != "" {
 		repo, err := clickhouse.OpenQueryRepository(cfg.ClickHouseDSN)
 		if err != nil {
 			return fmt.Errorf("clickhouse query repository: %w", err)
 		}
+		variantRepo = repo
 		variantQuery = repo
 	}
+	defer func() {
+		if variantRepo != nil {
+			_ = variantRepo.Close()
+		}
+	}()
 
 	engine := newEngine(log, runner, versionInfo(), promRegistry, jobRepo, objStore, variantQuery)
 	addr := listenAddr(cfg.APIPort)

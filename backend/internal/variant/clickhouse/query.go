@@ -65,6 +65,14 @@ func OpenQueryRepository(dsn string) (*QueryRepository, error) {
 	return NewQueryRepository(l.db)
 }
 
+// Close releases the underlying ClickHouse connection pool.
+func (r *QueryRepository) Close() error {
+	if r == nil || r.db == nil {
+		return nil
+	}
+	return r.db.Close()
+}
+
 // Query returns a filtered/paginated variants page.
 func (r *QueryRepository) Query(ctx context.Context, f QueryFilters) (QueryResult, error) {
 	if f.Page < 1 {

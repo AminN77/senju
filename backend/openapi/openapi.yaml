@@ -332,6 +332,7 @@ paths:
           in: query
           schema:
             type: string
+            pattern: "^[A-Za-z0-9._-]+$"
           description: Exact chromosome value (example `chr1`).
         - name: position_min
           in: query
@@ -339,6 +340,7 @@ paths:
             type: integer
             format: int64
             minimum: 0
+            maximum: 4294967295
           description: Inclusive lower bound for position.
         - name: position_max
           in: query
@@ -346,11 +348,13 @@ paths:
             type: integer
             format: int64
             minimum: 0
+            maximum: 4294967295
           description: Inclusive upper bound for position.
         - name: gene
           in: query
           schema:
             type: string
+            pattern: "^[A-Za-z0-9._-]+$"
           description: Gene symbol filter extracted from INFO payload (example `TP53`).
         - name: page
           in: query
@@ -515,6 +519,7 @@ components:
         - page_size
         - total
         - has_next
+        - latency_ms
         - filters
       properties:
         data:
