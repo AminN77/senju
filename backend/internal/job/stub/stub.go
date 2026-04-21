@@ -100,6 +100,9 @@ func (r *Repository) Update(ctx context.Context, id uuid.UUID, p job.UpdateParam
 	}
 	j.Status = p.Status
 	j.Stage = p.Stage
+	if p.OutputRef != nil {
+		j.OutputRef = cloneRawMessage(p.OutputRef)
+	}
 	if p.StartedAt != nil {
 		j.StartedAt = cloneTimePtr(p.StartedAt)
 	}

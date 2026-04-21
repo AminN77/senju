@@ -140,6 +140,54 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
+  /v1/jobs/fastq-upload/{job_id}/validate:
+    post:
+      tags:
+        - Ingestion
+      summary: Validate FASTQ stream and persist result
+      description: |
+        Streams FASTQ content from the request body, validates format incrementally with bounded memory,
+        and stores the validation output on the referenced job (`output_ref`).
+      operationId: postFastqUploadValidate
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: string
+              description: Raw FASTQ content
+      responses:
+        "200":
+          description: Validation completed (valid or invalid FASTQ)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FastqValidationResponse"
+        "400":
+          description: Invalid job_id or unreadable validation stream
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Persistence failure when storing validation result
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: Database not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
   /v1/objects/multipart:
     post:
       tags:
@@ -323,6 +371,26 @@ components:
         job_id:
           type: string
           format: uuid
+    FastqValidationResponse:
+      type: object
+      required:
+        - valid
+        - records
+      properties:
+        valid:
+          type: boolean
+          description: True when FASTQ format checks pass.
+        records:
+          type: integer
+          format: int64
+          description: Number of complete FASTQ records read.
+        failure_reason:
+          type: string
+          description: Present only when valid=false.
+        failure_record:
+          type: integer
+          format: int64
+          description: One-based record index for the failure, when available.
     MultipartInitRequest:
       type: object
       additionalProperties: false

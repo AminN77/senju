@@ -239,3 +239,95 @@ func TestPostFastqMetadata_OptionalFieldsStored(t *testing.T) {
 		t.Fatalf("input_ref: %s", j.InputRef)
 	}
 }
+
+func TestPostFastqValidate_200_Valid(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+	st := stub.New()
+	created, err := st.Create(context.Background(), job.CreateParams{
+		Status: job.StatusPending,
+		Stage:  StageFastqUploadQueued,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := gin.New()
+	Register(r.Group("/v1/jobs"), st)
+
+	body := "@r1\nACGT\n+\nIIII\n"
+	req := httptest.NewRequest(http.MethodPost, "/v1/jobs/fastq-upload/"+created.ID.String()+"/validate", strings.NewReader(body))
+	req.Header.Set("Content-Type", "text/plain")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var got ValidateResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if !got.Valid || got.Records != 1 {
+		t.Fatalf("response %+v", got)
+	}
+	updated, err := st.GetByID(context.Background(), created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Stage != StageFastqValidated || updated.Status != job.StatusSucceeded {
+		t.Fatalf("updated job %+v", updated)
+	}
+	if !bytes.Contains(updated.OutputRef, []byte(`"kind":"fastq_validation_v1"`)) {
+		t.Fatalf("output_ref: %s", updated.OutputRef)
+	}
+}
+
+func TestPostFastqValidate_200_Invalid(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+	st := stub.New()
+	created, err := st.Create(context.Background(), job.CreateParams{
+		Status: job.StatusPending,
+		Stage:  StageFastqUploadQueued,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := gin.New()
+	Register(r.Group("/v1/jobs"), st)
+
+	body := "@r1\nACGT\n+\nII\n"
+	req := httptest.NewRequest(http.MethodPost, "/v1/jobs/fastq-upload/"+created.ID.String()+"/validate", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+	var got ValidateResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Valid || got.FailureReason != "quality_length_mismatch" {
+		t.Fatalf("response %+v", got)
+	}
+	updated, err := st.GetByID(context.Background(), created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Stage != StageFastqValidationFailed || updated.Status != job.StatusFailed {
+		t.Fatalf("updated job %+v", updated)
+	}
+}
+
+func TestPostFastqValidate_400_BadJobID(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	Register(r.Group("/v1/jobs"), stub.New())
+
+	req := httptest.NewRequest(http.MethodPost, "/v1/jobs/fastq-upload/not-a-uuid/validate", strings.NewReader("@r\nA\n+\n!\n"))
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("status %d body %s", w.Code, w.Body.String())
+	}
+}

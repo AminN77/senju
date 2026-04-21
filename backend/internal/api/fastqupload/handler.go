@@ -9,14 +9,23 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/AminN77/senju/backend/internal/api/problem"
+	"github.com/AminN77/senju/backend/internal/fastq"
 	"github.com/AminN77/senju/backend/internal/job"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // StageFastqUploadQueued is the initial pipeline stage for a FASTQ metadata job row.
 const StageFastqUploadQueued = "fastq_upload_queued"
+
+// StageFastqValidated indicates FASTQ stream format passed validation.
+const StageFastqValidated = "fastq_validated"
+
+// StageFastqValidationFailed indicates FASTQ stream format failed validation.
+const StageFastqValidationFailed = "fastq_validation_failed"
 
 // Request is the JSON body for POST .../fastq-upload/metadata (paired-end MVP).
 type Request struct {
@@ -33,14 +42,24 @@ type CreateResponse struct {
 	JobID string `json:"job_id"`
 }
 
+// ValidateResponse is returned by FASTQ streaming format validation.
+type ValidateResponse struct {
+	Valid         bool   `json:"valid"`
+	Records       int64  `json:"records"`
+	FailureReason string `json:"failure_reason,omitempty"`
+	FailureRecord int64  `json:"failure_record,omitempty"`
+}
+
 // Register mounts POST /fastq-upload/metadata on the given /v1/jobs group.
 // If repo is nil, the handler returns 503 (database not configured).
 func Register(g *gin.RouterGroup, repo job.Repository) {
 	if repo == nil {
 		g.POST("/fastq-upload/metadata", handleNoDatabase)
+		g.POST("/fastq-upload/:job_id/validate", handleNoDatabase)
 		return
 	}
 	g.POST("/fastq-upload/metadata", handleCreate(repo))
+	g.POST("/fastq-upload/:job_id/validate", handleValidate(repo))
 }
 
 func handleNoDatabase(c *gin.Context) {
@@ -186,4 +205,78 @@ func canonicalInputJSON(req Request) (json.RawMessage, error) {
 		canon["notes"] = strings.TrimSpace(*req.Notes)
 	}
 	return json.Marshal(canon)
+}
+
+func handleValidate(repo job.Repository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		jobIDRaw := strings.TrimSpace(c.Param("job_id"))
+		jobID, err := uuid.Parse(jobIDRaw)
+		if err != nil {
+			problem.Validation(c, "one or more fields failed validation", []problem.FieldError{
+				{Field: "job_id", Message: "invalid_uuid"},
+			})
+			return
+		}
+
+		res, err := fastq.ValidateStream(c.Request.Body)
+		if err != nil {
+			problem.Validation(c, "one or more fields failed validation", []problem.FieldError{
+				{Field: "fastq", Message: "could_not_validate_stream"},
+			})
+			return
+		}
+
+		stage := StageFastqValidated
+		status := job.StatusSucceeded
+		if !res.Valid {
+			stage = StageFastqValidationFailed
+			status = job.StatusFailed
+		}
+
+		payload, err := json.Marshal(map[string]any{
+			"kind":           "fastq_validation_v1",
+			"valid":          res.Valid,
+			"records":        res.Records,
+			"failure_reason": res.FailureReason,
+			"failure_record": res.FailureRecord,
+			"validated_at":   time.Now().UTC().Format(time.RFC3339Nano),
+		})
+		if err != nil {
+			problem.JSON(c, http.StatusInternalServerError, problem.Problem{
+				Type:   problem.TypeInternalError,
+				Title:  "Internal error",
+				Status: http.StatusInternalServerError,
+				Detail: "could not build validation payload",
+			})
+			return
+		}
+
+		_, err = repo.Update(c.Request.Context(), jobID, job.UpdateParams{
+			Status:    status,
+			Stage:     stage,
+			OutputRef: payload,
+		})
+		if errors.Is(err, job.ErrNotFound) {
+			problem.Validation(c, "one or more fields failed validation", []problem.FieldError{
+				{Field: "job_id", Message: "not_found"},
+			})
+			return
+		}
+		if err != nil {
+			problem.JSON(c, http.StatusInternalServerError, problem.Problem{
+				Type:   problem.TypeInternalError,
+				Title:  "Internal error",
+				Status: http.StatusInternalServerError,
+				Detail: "could not persist validation result",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, ValidateResponse{
+			Valid:         res.Valid,
+			Records:       res.Records,
+			FailureReason: res.FailureReason,
+			FailureRecord: res.FailureRecord,
+		})
+	}
 }

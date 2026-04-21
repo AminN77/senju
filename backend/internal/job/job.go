@@ -55,6 +55,7 @@ type CreateParams struct {
 type UpdateParams struct {
 	Status      Status
 	Stage       string
+	OutputRef   json.RawMessage
 	StartedAt   *time.Time
 	CompletedAt *time.Time
 }

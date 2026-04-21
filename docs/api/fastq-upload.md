@@ -48,3 +48,26 @@ curl -sS -X POST "http://localhost:${API_PORT:-8080}/v1/jobs/fastq-upload/metada
 ```
 
 OpenAPI: [backend/openapi/openapi.yaml](../../backend/openapi/openapi.yaml).
+
+## Streaming FASTQ validator
+
+- **POST** `/v1/jobs/fastq-upload/{job_id}/validate`
+- **Content-Type:** `text/plain`
+
+This endpoint streams FASTQ content directly from the request body (bounded memory parser) and stores the validation result in the target job's `output_ref` JSON.
+
+### Success (200)
+
+```json
+{ "valid": true, "records": 12345 }
+```
+
+Invalid FASTQ still returns `200` with `valid: false`, plus `failure_reason` and `failure_record`; the job is marked failed with stage `fastq_validation_failed`.
+
+### Example
+
+```bash
+curl -sS -X POST "http://localhost:${API_PORT:-8080}/v1/jobs/fastq-upload/${JOB_ID}/validate" \
+  -H "Content-Type: text/plain" \
+  --data-binary $'@read1\nACGT\n+\nIIII\n'
+```

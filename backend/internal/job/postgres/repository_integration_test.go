@@ -73,8 +73,9 @@ func TestRepository_CRUD(t *testing.T) {
 	}
 
 	updated, err := repo.Update(ctx, created.ID, job.UpdateParams{
-		Status: job.StatusRunning,
-		Stage:  "align",
+		Status:    job.StatusRunning,
+		Stage:     "align",
+		OutputRef: json.RawMessage(`{"kind":"fastq_validation_v1","valid":true}`),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -84,6 +85,16 @@ func TestRepository_CRUD(t *testing.T) {
 	}
 	if !updated.UpdatedAt.After(created.UpdatedAt) {
 		t.Fatalf("expected updated_at to advance: before=%v after=%v", created.UpdatedAt, updated.UpdatedAt)
+	}
+	var outObj, outWant any
+	if err := json.Unmarshal(updated.OutputRef, &outObj); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(`{"kind":"fastq_validation_v1","valid":true}`), &outWant); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(outObj, outWant) {
+		t.Fatalf("output ref: %s", updated.OutputRef)
 	}
 }
 

@@ -67,13 +67,17 @@ func timeToTimestamptz(t *time.Time) pgtype.Timestamptz {
 }
 
 func mapUpdateParams(id uuid.UUID, p job.UpdateParams) jobdb.UpdateJobParams {
-	return jobdb.UpdateJobParams{
+	arg := jobdb.UpdateJobParams{
 		ID:          uuidToPgUUID(id),
 		Status:      string(p.Status),
 		Stage:       p.Stage,
 		StartedAt:   timeToTimestamptz(p.StartedAt),
 		CompletedAt: timeToTimestamptz(p.CompletedAt),
 	}
+	if len(p.OutputRef) > 0 {
+		arg.OutputRef = append([]byte(nil), p.OutputRef...)
+	}
+	return arg
 }
 
 func mapCreateParams(id uuid.UUID, p job.CreateParams) jobdb.CreateJobParams {
