@@ -61,3 +61,14 @@ BWA + SAMtools alignment worker is implemented in `backend/internal/pipeline/ali
 - Stage-level CPU/memory limits are configurable per job (`threads`, `memory_limit_mb`) with safe defaults from worker config.
 - Deterministic output verification is documented and tested: same input/config and output bytes produce same SHA-256 checksum.
 - Stage logs include `job_id`, `stage=alignment`, `exit_code`, and `duration`.
+
+## GATK stage worker (Issue #12)
+
+GATK variant-calling worker is implemented in `backend/internal/pipeline/gatk`.
+
+- Payload fields: `reference_path`, `input_bam_path`, `output_vcf_path` (+ optional `output_vcf_uri`).
+- Worker executes `gatk HaplotypeCaller`, persists VCF artifact metadata in `output_ref`, and updates status transitions (`gatk_running` -> `gatk_succeeded` / `gatk_failed`).
+- Errors are classified into `tool`, `infrastructure`, and `configuration`.
+- Stage metrics are exported to Prometheus:
+  - `senju_pipeline_stage_duration_seconds` (histogram)
+  - `senju_pipeline_stage_total` (counter with `stage/outcome/error_class` labels)
