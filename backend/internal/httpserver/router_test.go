@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -12,9 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AminN77/senju/backend/internal/api/variantquery"
 	"github.com/AminN77/senju/backend/internal/healthcheck"
 	"github.com/AminN77/senju/backend/internal/platform/metrics"
+	"github.com/AminN77/senju/backend/internal/security"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 )
 
@@ -22,6 +27,14 @@ import (
 func testMetricsHandler() http.Handler {
 	return metrics.NewRegistry().Handler()
 }
+
+type testAllowAllAuth struct{}
+
+func (testAllowAllAuth) RequireRoles(_ ...string) gin.HandlerFunc {
+	return func(c *gin.Context) { c.Next() }
+}
+
+func testAuthAllowAll() security.Authorizer { return testAllowAllAuth{} }
 
 func BenchmarkHealthLive(b *testing.B) {
 	b.ReportAllocs()
@@ -33,6 +46,7 @@ func BenchmarkHealthLive(b *testing.B) {
 		EnableSwaggerUI: false,
 		Metrics:         testMetricsHandler(),
 		Log:             zerolog.Nop(),
+		Auth:            testAuthAllowAll(),
 	})
 	req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
 
@@ -56,6 +70,7 @@ func BenchmarkHealthReady_EmptyRunner(b *testing.B) {
 		EnableSwaggerUI: false,
 		Metrics:         testMetricsHandler(),
 		Log:             zerolog.Nop(),
+		Auth:            testAuthAllowAll(),
 	})
 	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 
@@ -85,6 +100,7 @@ func TestHealthLive(t *testing.T) {
 		EnableSwaggerUI: true,
 		Metrics:         testMetricsHandler(),
 		Log:             zerolog.Nop(),
+		Auth:            testAuthAllowAll(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -108,6 +124,7 @@ func TestVersionJSON(t *testing.T) {
 		EnableSwaggerUI: true,
 		Metrics:         testMetricsHandler(),
 		Log:             zerolog.Nop(),
+		Auth:            testAuthAllowAll(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -136,6 +153,7 @@ func TestOpenAPISpecYAML(t *testing.T) {
 		EnableSwaggerUI: false,
 		Metrics:         testMetricsHandler(),
 		Log:             zerolog.Nop(),
+		Auth:            testAuthAllowAll(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -168,6 +186,7 @@ func TestMetrics(t *testing.T) {
 		EnableSwaggerUI: false,
 		Metrics:         reg.Handler(),
 		Log:             zerolog.Nop(),
+		Auth:            testAuthAllowAll(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -196,6 +215,7 @@ func TestSwaggerUI(t *testing.T) {
 		EnableSwaggerUI: true,
 		Metrics:         testMetricsHandler(),
 		Log:             zerolog.Nop(),
+		Auth:            testAuthAllowAll(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -226,6 +246,7 @@ func TestSwaggerUI_NotRegisteredWhenDisabled(t *testing.T) {
 		EnableSwaggerUI: false,
 		Metrics:         testMetricsHandler(),
 		Log:             zerolog.Nop(),
+		Auth:            testAuthAllowAll(),
 	})
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/docs", nil))
@@ -252,6 +273,7 @@ func TestHealthLiveP95Under100ms(t *testing.T) {
 		EnableSwaggerUI: true,
 		Metrics:         testMetricsHandler(),
 		Log:             zerolog.Nop(),
+		Auth:            testAuthAllowAll(),
 	}))
 	t.Cleanup(srv.Close)
 
@@ -293,4 +315,89 @@ func TestHealthLiveP95Under100ms(t *testing.T) {
 	if p95 > 100*time.Millisecond {
 		t.Fatalf("p95 latency %s exceeds 100ms", p95)
 	}
+}
+
+type testVariantSvc struct{}
+
+func (testVariantSvc) Query(_ context.Context, f variantquery.QueryFilters) (variantquery.QueryResult, error) {
+	return variantquery.QueryResult{Rows: []variantquery.QueryRow{
+		{Chromosome: "chr1", Position: 1, Ref: "A", Alt: "T", Filter: "PASS", Info: "GENE=TP53", Gene: "TP53"},
+	}, Total: 1, Page: f.Page, PageSize: f.PageSize, HasNext: false}, nil
+}
+
+func TestAuthProtection_VariantsRequiresAnalystRole(t *testing.T) {
+	t.Parallel()
+	authz, err := security.NewJWTAuthorizer("secret", "senju-api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(testEngine(Options{
+		Readiness:       healthcheck.NewRunner(),
+		Version:         VersionInfo{Service: "senju-api", Version: "test", Commit: "x", BuildTime: "y"},
+		EnableSwaggerUI: false,
+		Metrics:         testMetricsHandler(),
+		Log:             zerolog.Nop(),
+		Auth:            authz,
+		VariantQuery:    testVariantSvc{},
+	}))
+	t.Cleanup(srv.Close)
+
+	t.Run("missing token", func(t *testing.T) {
+		resp, err := http.Get(srv.URL + "/v1/variants")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("status=%d", resp.StatusCode)
+		}
+	})
+
+	t.Run("wrong role", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, srv.URL+"/v1/variants", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer "+testSignedJWT(t, "secret", "senju-api", "uploader"))
+		resp, err := srv.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		if resp.StatusCode != http.StatusForbidden {
+			t.Fatalf("status=%d", resp.StatusCode)
+		}
+	})
+
+	t.Run("allowed role", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, srv.URL+"/v1/variants", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer "+testSignedJWT(t, "secret", "senju-api", "analyst"))
+		resp, err := srv.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = resp.Body.Close() }()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("status=%d", resp.StatusCode)
+		}
+	})
+}
+
+func testSignedJWT(t *testing.T, secret, issuer, role string) string {
+	t.Helper()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":  uuid.NewString(),
+		"iss":  issuer,
+		"exp":  time.Now().Add(30 * time.Minute).Unix(),
+		"iat":  time.Now().Unix(),
+		"role": role,
+	})
+	signed, err := token.SignedString([]byte(secret))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return signed
 }

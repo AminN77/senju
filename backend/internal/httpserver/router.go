@@ -17,6 +17,7 @@ import (
 	"github.com/AminN77/senju/backend/internal/healthcheck"
 	"github.com/AminN77/senju/backend/internal/job"
 	"github.com/AminN77/senju/backend/internal/objectstore"
+	"github.com/AminN77/senju/backend/internal/security"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
@@ -43,6 +44,8 @@ type Options struct {
 	ObjectStore objectstore.Service
 	// VariantQuery serves variant analytics reads. If nil, /v1/variants returns 503.
 	VariantQuery variantquery.Service
+	// Auth protects upload/run/query APIs with JWT role checks.
+	Auth security.Authorizer
 }
 
 // VersionInfo is returned by GET /version.
@@ -62,15 +65,25 @@ func Register(r *gin.Engine, opts Options) {
 	if opts.Metrics == nil {
 		panic("httpserver: Options.Metrics must not be nil")
 	}
+	if opts.Auth == nil {
+		panic("httpserver: Options.Auth must not be nil")
+	}
 	r.GET("/health/live", handleLive)
 	r.GET("/health/ready", handleReady(opts.Readiness))
 	r.GET("/version", handleVersion(opts.Version))
 	r.GET("/", handleRoot)
 	r.GET("/metrics", gin.WrapH(opts.Metrics))
-	fastqupload.Register(r.Group("/v1/jobs"), opts.Jobs)
-	orchestration.Register(r.Group("/v1/jobs"), opts.Jobs)
-	objectupload.Register(r.Group("/v1/objects"), opts.ObjectStore, opts.Log)
-	variantquery.Register(r.Group("/v1"), opts.VariantQuery)
+	v1 := r.Group("/v1")
+	jobsUploader := v1.Group("/jobs", opts.Auth.RequireRoles("uploader", "admin"))
+	fastqupload.Register(jobsUploader, opts.Jobs)
+	objectsUploader := v1.Group("/objects", opts.Auth.RequireRoles("uploader", "admin"))
+	objectupload.Register(objectsUploader, opts.ObjectStore, opts.Log)
+
+	jobsRunner := v1.Group("/jobs", opts.Auth.RequireRoles("runner", "admin"))
+	orchestration.Register(jobsRunner, opts.Jobs)
+
+	variantsReader := v1.Group("", opts.Auth.RequireRoles("analyst", "admin"))
+	variantquery.Register(variantsReader, opts.VariantQuery)
 	registerOpenAPISpecRoute(r)
 	if opts.EnableSwaggerUI {
 		registerSwaggerUIRoute(r)
