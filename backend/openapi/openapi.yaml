@@ -577,6 +577,95 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/ProblemDetails"
+  /v1/ml/impact/train:
+    post:
+      tags:
+        - Ingestion
+      security:
+        - bearerAuth: []
+      summary: Train baseline impact model
+      description: |
+        Trains the baseline variant impact model using labeled variant samples and returns reproducibility metadata.
+      operationId: postMLImpactTrain
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImpactTrainRequest"
+      responses:
+        "200":
+          description: Model trained
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImpactTrainResponse"
+        "400":
+          description: Malformed JSON or invalid training samples
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: ML service not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+  /v1/ml/impact/{job_id}/predict:
+    post:
+      tags:
+        - Ingestion
+      security:
+        - bearerAuth: []
+      summary: Predict variant impact and persist output
+      description: |
+        Scores one variant with the current baseline model and persists prediction metadata to the referenced job output.
+      operationId: postMLImpactPredict
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImpactPredictRequest"
+      responses:
+        "200":
+          description: Prediction persisted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImpactPredictResponse"
+        "400":
+          description: Malformed JSON, invalid payload, or unknown job
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "409":
+          description: Model has not been trained yet
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Persistence failure
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "503":
+          description: ML service not configured
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
 components:
   securitySchemes:
     bearerAuth:
@@ -811,6 +900,156 @@ components:
           format: int64
         filters:
           $ref: "#/components/schemas/VariantQueryFilters"
+    ImpactModelMetadata:
+      type: object
+      required:
+        - dataset_hash
+        - feature_version
+        - model_version
+        - trained_at
+        - sample_count
+      properties:
+        dataset_hash:
+          type: string
+        feature_version:
+          type: string
+        model_version:
+          type: string
+        trained_at:
+          type: string
+          format: date-time
+        sample_count:
+          type: integer
+          format: int32
+    ImpactTrainSample:
+      type: object
+      additionalProperties: false
+      required:
+        - chromosome
+        - position
+        - ref
+        - alt
+        - qual
+        - filter
+        - label
+      properties:
+        chromosome:
+          type: string
+        position:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 4294967295
+        ref:
+          type: string
+          minLength: 1
+        alt:
+          type: string
+          minLength: 1
+        qual:
+          type: number
+          format: double
+          minimum: 0
+        filter:
+          type: string
+          minLength: 1
+        gene:
+          type: string
+        label:
+          type: integer
+          enum: [0, 1]
+    ImpactTrainRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - samples
+      properties:
+        samples:
+          type: array
+          minItems: 2
+          items:
+            $ref: "#/components/schemas/ImpactTrainSample"
+    ImpactTrainResponse:
+      type: object
+      required:
+        - model
+      properties:
+        model:
+          $ref: "#/components/schemas/ImpactModelMetadata"
+    ImpactPredictVariant:
+      type: object
+      additionalProperties: false
+      required:
+        - chromosome
+        - position
+        - ref
+        - alt
+        - qual
+        - filter
+      properties:
+        chromosome:
+          type: string
+        position:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 4294967295
+        ref:
+          type: string
+          minLength: 1
+        alt:
+          type: string
+          minLength: 1
+        qual:
+          type: number
+          format: double
+          minimum: 0
+        filter:
+          type: string
+          minLength: 1
+        gene:
+          type: string
+    ImpactPredictRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - variant
+      properties:
+        variant:
+          $ref: "#/components/schemas/ImpactPredictVariant"
+    ImpactPredictResponse:
+      type: object
+      required:
+        - job_id
+        - score
+        - class
+        - latency_ms
+        - model
+        - features
+        - predicted_at
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        score:
+          type: number
+          format: double
+        class:
+          type: string
+          enum: [benign, deleterious]
+        latency_ms:
+          type: integer
+          format: int64
+        model:
+          $ref: "#/components/schemas/ImpactModelMetadata"
+        features:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        predicted_at:
+          type: string
+          format: date-time
     MultipartInitRequest:
       type: object
       additionalProperties: false
