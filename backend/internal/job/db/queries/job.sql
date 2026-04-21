@@ -22,6 +22,7 @@ UPDATE public.jobs
 SET status = $2,
     stage = $3,
     started_at = COALESCE($4, started_at),
-    completed_at = COALESCE($5, completed_at)
+    completed_at = COALESCE($5, completed_at),
+    output_ref = COALESCE($6, output_ref)
 WHERE id = $1
 RETURNING id, status, stage, input_ref, output_ref, created_at, updated_at, started_at, completed_at;
