@@ -11,6 +11,16 @@ describe("theme tokens", () => {
     document.documentElement.setAttribute("data-theme", theme);
   };
 
+  const resolveValue = (value: string): string => {
+    return value.replace(/var\(--([^)]+)\)/g, (_, nestedName: string) => {
+      const rootMatch = tokensCss.match(new RegExp(`--${nestedName}:\\s*([^;]+);`));
+      if (!rootMatch?.[1]) {
+        return "";
+      }
+      return rootMatch[1].trim();
+    });
+  };
+
   it("resolves expected CSS variables for light and dark themes", () => {
     const style = document.createElement("style");
     style.textContent = tokensCss;
@@ -18,19 +28,19 @@ describe("theme tokens", () => {
 
     setTheme("light");
     const lightStyles = getComputedStyle(document.documentElement);
-    expect(lightStyles.getPropertyValue("--color-surface-raised").replace(/\s+/g, "")).toBe(
+    expect(resolveValue(lightStyles.getPropertyValue("--color-surface-raised")).replace(/\s+/g, "")).toBe(
       "oklch(100%00)"
     );
-    expect(lightStyles.getPropertyValue("--color-text-primary").replace(/\s+/g, "")).toBe(
+    expect(resolveValue(lightStyles.getPropertyValue("--color-text-primary")).replace(/\s+/g, "")).toBe(
       "oklch(20%0.014250)"
     );
 
     setTheme("dark");
     const darkStyles = getComputedStyle(document.documentElement);
-    expect(darkStyles.getPropertyValue("--color-surface-raised").replace(/\s+/g, "")).toBe(
+    expect(resolveValue(darkStyles.getPropertyValue("--color-surface-raised")).replace(/\s+/g, "")).toBe(
       "oklch(20%0.014250)"
     );
-    expect(darkStyles.getPropertyValue("--color-text-primary").replace(/\s+/g, "")).toBe(
+    expect(resolveValue(darkStyles.getPropertyValue("--color-text-primary")).replace(/\s+/g, "")).toBe(
       "oklch(98%0.003250)"
     );
   });

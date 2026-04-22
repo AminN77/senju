@@ -35,6 +35,7 @@
   - `docker compose run --rm frontend pnpm lint`
   - `docker compose run --rm frontend pnpm typecheck`
   - `docker compose run --rm frontend pnpm test`
+  - `docker compose run --rm frontend pnpm test:contrast`
   - `docker compose run --rm frontend pnpm build`
 - Frontend engineering docs: `docs/frontend/README.md`
 - Design principles: `docs/frontend/design-principles.md`

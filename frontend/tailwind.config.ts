@@ -9,6 +9,7 @@ const config: Config = {
         "surface-raised": "var(--color-surface-raised)",
         "surface-overlay": "var(--color-surface-overlay)",
         "surface-sunken": "var(--color-surface-sunken)",
+        "surface-brand-subtle": "var(--color-surface-brand-subtle)",
         "text-primary": "var(--color-text-primary)",
         "text-secondary": "var(--color-text-secondary)",
         "text-muted": "var(--color-text-muted)",
