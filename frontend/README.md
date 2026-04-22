@@ -44,6 +44,14 @@ pnpm dev
 
 Open <http://localhost:3000>.
 
+Production smoke test:
+
+```bash
+pnpm build && pnpm start
+```
+
+Then open <http://localhost:3000> and verify the app loads successfully.
+
 ## Notes
 
 - Next.js config uses `output: "standalone"` for containerized deploys.
