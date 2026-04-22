@@ -26,8 +26,14 @@
 - Issue templates: `.github/ISSUE_TEMPLATE/`
 - Code ownership: `CODEOWNERS`
 
-## Frontend (planned — UI Foundation phase)
+## Frontend (UI Foundation)
 
+- App location: `frontend/` (Next.js App Router + React + TypeScript strict + pnpm)
+- Frontend quick start:
+  - `cd frontend`
+  - `pnpm install`
+  - `pnpm dev` (local dev server on `http://localhost:3000`)
+  - `pnpm lint && pnpm typecheck && pnpm build`
 - Frontend engineering docs: `docs/frontend/README.md`
 - Design principles: `docs/frontend/design-principles.md`
 - Design system and tokens: `docs/frontend/design-system.md`
