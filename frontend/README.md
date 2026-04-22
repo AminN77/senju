@@ -15,6 +15,7 @@ Next.js (App Router) + React + TypeScript (strict) scaffold for the Senju UI Fou
 - `pnpm start` - starts production server
 - `pnpm lint` - ESLint checks with zero warnings allowed
 - `pnpm typecheck` - strict TypeScript checks
+- `pnpm test` - token and unit tests (Vitest)
 - `pnpm format` - Prettier formatting check
 
 ## Quick start (Docker first)
@@ -30,6 +31,7 @@ Open <http://localhost:3001> (or `FRONTEND_PORT` if overridden).
 ```bash
 docker compose run --rm frontend pnpm lint
 docker compose run --rm frontend pnpm typecheck
+docker compose run --rm frontend pnpm test
 docker compose run --rm frontend pnpm build
 ```
 
