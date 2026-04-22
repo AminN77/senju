@@ -30,10 +30,11 @@
 
 - App location: `frontend/` (Next.js App Router + React + TypeScript strict + pnpm)
 - Frontend quick start:
-  - `cd frontend`
-  - `pnpm install`
-  - `pnpm dev` (local dev server on `http://localhost:3000`)
-  - `pnpm lint && pnpm typecheck && pnpm build`
+  - `docker compose up -d --build frontend api`
+  - open `http://localhost:3001` (or `FRONTEND_PORT`)
+  - `docker compose run --rm frontend pnpm lint`
+  - `docker compose run --rm frontend pnpm typecheck`
+  - `docker compose run --rm frontend pnpm build`
 - Frontend engineering docs: `docs/frontend/README.md`
 - Design principles: `docs/frontend/design-principles.md`
 - Design system and tokens: `docs/frontend/design-system.md`

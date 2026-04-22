@@ -6,6 +6,7 @@ Next.js (App Router) + React + TypeScript (strict) scaffold for the Senju UI Fou
 
 - Node.js 22 LTS (`.nvmrc`)
 - pnpm 10+
+- Docker + Docker Compose (preferred execution path)
 
 ## Scripts
 
@@ -16,7 +17,25 @@ Next.js (App Router) + React + TypeScript (strict) scaffold for the Senju UI Fou
 - `pnpm typecheck` - strict TypeScript checks
 - `pnpm format` - Prettier formatting check
 
-## Quick start
+## Quick start (Docker first)
+
+```bash
+docker compose up -d --build frontend api
+```
+
+Open <http://localhost:3001> (or `FRONTEND_PORT` if overridden).
+
+## Verification via Docker
+
+```bash
+docker compose run --rm frontend pnpm lint
+docker compose run --rm frontend pnpm typecheck
+docker compose run --rm frontend pnpm build
+```
+
+## Optional local workflow
+
+If you need direct local iteration instead of containers:
 
 ```bash
 pnpm install
