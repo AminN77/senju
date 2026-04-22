@@ -73,16 +73,16 @@
   --color-info-border: oklch(82% 0.08 250);
 
   /* Data-viz tokens */
-  --color-dv-1: oklch(62% 0.14 200);
-  --color-dv-2: oklch(68% 0.15 30);
-  --color-dv-3: oklch(60% 0.14 280);
-  --color-dv-4: oklch(64% 0.15 140);
-  --color-dv-5: oklch(60% 0.16 10);
-  --color-dv-6: oklch(70% 0.15 60);
-  --color-dv-7: oklch(62% 0.17 320);
-  --color-dv-8: oklch(66% 0.11 180);
-  --color-dv-9: oklch(63% 0.12 100);
-  --color-dv-10: oklch(58% 0.12 240);
+  --color-dv-1: oklch(56% 0.14 200);
+  --color-dv-2: oklch(58% 0.15 30);
+  --color-dv-3: oklch(55% 0.14 280);
+  --color-dv-4: oklch(57% 0.15 140);
+  --color-dv-5: oklch(54% 0.16 10);
+  --color-dv-6: oklch(55% 0.15 60);
+  --color-dv-7: oklch(56% 0.17 320);
+  --color-dv-8: oklch(57% 0.11 180);
+  --color-dv-9: oklch(55% 0.12 100);
+  --color-dv-10: oklch(53% 0.12 240);
   --color-dv-seq-1: oklch(96% 0.02 200);
   --color-dv-seq-5: oklch(60% 0.14 200);
   --color-dv-seq-9: oklch(28% 0.07 200);

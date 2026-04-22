@@ -26,10 +26,15 @@ const extractToken = (block: string, tokenName: string): string => {
   return tokenValue.trim();
 };
 
-const parseColor = (value: string): string => {
+const parseColor = (value: string, theme: "light" | "dark"): string => {
+  const themeBlock = blockForTheme(theme);
+  const lightBlock = blockForTheme("light");
   const resolved = value.replace(/var\(--([^)]+)\)/g, (_, nestedName: string) => {
-    const fromRoot = extractToken(blockForTheme("light"), nestedName);
-    return fromRoot;
+    try {
+      return extractToken(themeBlock, nestedName);
+    } catch {
+      return extractToken(lightBlock, nestedName);
+    }
   });
 
   const rgb = toRgb(resolved);
@@ -40,17 +45,19 @@ const parseColor = (value: string): string => {
 };
 
 describe("contrast checks", () => {
-  it("ensures dark theme data-viz categorical tokens meet 3:1 contrast", () => {
-    const darkBlock = blockForTheme("dark");
-    const surfaceBase = parseColor(extractToken(darkBlock, "color-surface-base"));
+  for (const theme of ["light", "dark"] as const) {
+    it(`ensures ${theme} theme data-viz categorical tokens meet 3:1 contrast`, () => {
+      const block = blockForTheme(theme);
+      const surfaceBase = parseColor(extractToken(block, "color-surface-base"), theme);
 
-    for (let i = 1; i <= 10; i += 1) {
-      const tokenValue = parseColor(extractToken(darkBlock, `color-dv-${i}`));
-      const contrast = wcagContrast(tokenValue, surfaceBase);
-      expect(
-        contrast,
-        `Expected --color-dv-${i} contrast ${contrast.toFixed(2)} to be >= 3.00 against dark surface`
-      ).toBeGreaterThanOrEqual(3);
-    }
-  });
+      for (let i = 1; i <= 10; i += 1) {
+        const tokenValue = parseColor(extractToken(block, `color-dv-${i}`), theme);
+        const contrast = wcagContrast(tokenValue, surfaceBase);
+        expect(
+          contrast,
+          `Expected --color-dv-${i} contrast ${contrast.toFixed(2)} to be >= 3.00 against ${theme} surface`
+        ).toBeGreaterThanOrEqual(3);
+      }
+    });
+  }
 });
