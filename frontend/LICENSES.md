@@ -26,6 +26,10 @@ This file tracks **direct** runtime and development dependencies used by the `fr
 | `@vitejs/plugin-react` | 6.0.1 | MIT | dev |
 | `@axe-core/playwright` | 4.11.2 | MPL-2.0 | dev |
 | `@playwright/test` | 1.59.1 | Apache-2.0 | dev |
+| `@storybook/addon-a11y` | 10.3.5 | MIT | dev |
+| `@storybook/addon-themes` | 10.3.5 | MIT | dev |
+| `@storybook/nextjs` | 10.3.5 | MIT | dev |
+| `@storybook/react` | 10.3.5 | MIT | dev |
 | `autoprefixer` | 10.5.0 | MIT | dev |
 | `class-variance-authority` | 0.7.1 | Apache-2.0 | runtime |
 | `clsx` | 2.1.1 | MIT | runtime |
@@ -43,6 +47,7 @@ This file tracks **direct** runtime and development dependencies used by the `fr
 | `react` | 19.2.4 | MIT | runtime |
 | `react-dom` | 19.2.4 | MIT | runtime |
 | `shadcn` | 4.4.0 | MIT | dev |
+| `storybook` | 10.3.5 | MIT | dev |
 | `tailwind-merge` | 3.5.0 | MIT | runtime |
 | `tailwindcss` | 3.4.17 | MIT | dev |
 | `typescript` | 5.9.3 | Apache-2.0 | dev |
