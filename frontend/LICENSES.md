@@ -16,9 +16,16 @@ This file tracks **direct** runtime and development dependencies used by the `fr
 | `@radix-ui/react-primitive` | 2.1.4 | MIT | runtime |
 | `@radix-ui/react-separator` | 1.1.8 | MIT | runtime |
 | `@radix-ui/react-slot` | 1.2.4 | MIT | runtime |
+| `@testing-library/jest-dom` | 6.9.1 | MIT | dev |
+| `@testing-library/react` | 16.3.2 | MIT | dev |
+| `@testing-library/user-event` | 14.6.1 | MIT | dev |
+| `@types/jest-axe` | 3.5.9 | MIT | dev |
 | `@types/node` | 22.19.17 | MIT | dev |
 | `@types/react` | 19.2.14 | MIT | dev |
 | `@types/react-dom` | 19.2.3 | MIT | dev |
+| `@vitejs/plugin-react` | 6.0.1 | MIT | dev |
+| `@axe-core/playwright` | 4.11.2 | MPL-2.0 | dev |
+| `@playwright/test` | 1.59.1 | Apache-2.0 | dev |
 | `autoprefixer` | 10.5.0 | MIT | dev |
 | `class-variance-authority` | 0.7.1 | Apache-2.0 | runtime |
 | `clsx` | 2.1.1 | MIT | runtime |
@@ -27,6 +34,7 @@ This file tracks **direct** runtime and development dependencies used by the `fr
 | `eslint-config-next` | 16.2.4 | MIT | dev |
 | `eslint-config-prettier` | 10.1.8 | MIT | dev |
 | `eslint-plugin-jsx-a11y` | 6.10.2 | MIT | dev |
+| `jest-axe` | 10.0.0 | MIT | dev |
 | `jsdom` | 29.0.2 | MIT | dev |
 | `lucide-react` | 1.8.0 | ISC | runtime |
 | `next` | 16.2.4 | MIT | runtime |

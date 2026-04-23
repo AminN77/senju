@@ -14,8 +14,10 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "format": "prettier --check .",
-    "test": "vitest run --environment jsdom",
-    "test:contrast": "vitest run src/styles/contrast.test.ts"
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "test:contrast": "vitest run src/styles/contrast.test.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
@@ -31,15 +33,23 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.2",
+    "@playwright/test": "^1.59.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest-axe": "^3.5.9",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
     "culori": "^4.0.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",
+    "jest-axe": "^10.0.0",
     "jsdom": "^29.0.2",
     "postcss": "^8.5.10",
     "prettier": "^3.8.3",
