@@ -58,3 +58,25 @@ export const LongContent: Story = {
     children: "Run a long-running genomics workflow with validation and downstream QC checks",
   },
 };
+
+export const LoadingNotApplicable: Story = {
+  render: () => (
+    <div className="space-y-2">
+      <Button>Run smoke action</Button>
+      <p className="text-body-md text-text-secondary">
+        Button has no built-in loading prop; loading visuals are composed by higher-level domain components.
+      </p>
+    </div>
+  ),
+};
+
+export const ErrorNotApplicable: Story = {
+  render: () => (
+    <div className="space-y-2">
+      <Button variant="outline">Run smoke action</Button>
+      <p className="text-body-md text-text-secondary">
+        Button has no intrinsic error state; error semantics belong to surrounding form or status UI.
+      </p>
+    </div>
+  ),
+};

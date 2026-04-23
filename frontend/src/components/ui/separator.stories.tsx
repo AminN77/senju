@@ -45,3 +45,55 @@ export const LongContent: Story = {
     </div>
   ),
 };
+
+export const DisabledNotApplicable: Story = {
+  render: () => (
+    <div className="w-full max-w-md space-y-4">
+      <p className="text-body-md text-text-primary">Section A</p>
+      <Separator />
+      <p className="text-body-md text-text-primary">Section B</p>
+      <p className="text-body-md text-text-secondary">
+        Separator is non-interactive and does not implement a disabled state.
+      </p>
+    </div>
+  ),
+};
+
+export const LoadingNotApplicable: Story = {
+  render: () => (
+    <div className="w-full max-w-md space-y-4">
+      <p className="text-body-md text-text-primary">Section A</p>
+      <Separator />
+      <p className="text-body-md text-text-primary">Section B</p>
+      <p className="text-body-md text-text-secondary">
+        Separator does not own loading behavior; loading indicators belong to nearby content blocks.
+      </p>
+    </div>
+  ),
+};
+
+export const EmptyNotApplicable: Story = {
+  render: () => (
+    <div className="w-full max-w-md space-y-4">
+      <p className="text-body-md text-text-primary">Section A</p>
+      <Separator />
+      <p className="text-body-md text-text-primary">Section B</p>
+      <p className="text-body-md text-text-secondary">
+        Separator is purely structural, so an empty-content state is not applicable.
+      </p>
+    </div>
+  ),
+};
+
+export const ErrorNotApplicable: Story = {
+  render: () => (
+    <div className="w-full max-w-md space-y-4">
+      <p className="text-body-md text-text-primary">Section A</p>
+      <Separator />
+      <p className="text-body-md text-text-primary">Section B</p>
+      <p className="text-body-md text-text-secondary">
+        Separator has no intrinsic error state; error signaling belongs to related form or status components.
+      </p>
+    </div>
+  ),
+};

@@ -4,8 +4,7 @@ const config: StorybookConfig = {
   stories: ["../src/**/*.stories.@(ts|tsx|mdx)"],
   addons: [
     "@storybook/addon-a11y",
-    "@storybook/addon-interactions",
-    "@storybook/addon-viewport",
+    "storybook/viewport",
     "@storybook/addon-themes",
   ],
   framework: {

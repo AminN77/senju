@@ -19,7 +19,8 @@ pnpm shadcn add textarea
 
 ## Expectations after generating a component
 
-- **Stories are required**: Every new component must include at least one Storybook story before review.
+- **Stories are required**: Every new component must include Storybook stories for default, variants × sizes (when applicable), loading/empty/error, disabled, and long-content states before review.
+- **Story checklist**: Confirm each story file covers `default`, `variants×sizes`, `loading`, `empty`, `error`, `disabled`, and `long content` (mark `not applicable` explicitly when a primitive does not support a state).
 - **Source layout**: Generated files live in `src/components/ui/` (or the path the generator outputs to).
 - **Tokens**: Use token-backed utilities only (no raw color literals, no Tailwind arbitrary color values for design system colors).
 - **Storybook**: Add or update a story for the default state and the main visual / interaction variants you rely on in product.

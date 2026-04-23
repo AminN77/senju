@@ -6,6 +6,7 @@ const meta = {
   title: "Primitives/Input",
   component: Input,
   args: {
+    "aria-label": "Email address",
     placeholder: "name@senju.dev",
     disabled: false,
   },
@@ -27,7 +28,32 @@ export const Disabled: Story = {
 
 export const LongContent: Story = {
   args: {
+    "aria-label": "Long content input",
     defaultValue:
       "This is a long value to validate overflow and typography behavior in the input primitive under baseline Storybook states.",
+  },
+};
+
+export const Loading: Story = {
+  args: {
+    "aria-label": "Loading input",
+    disabled: true,
+    defaultValue: "Loading profile data...",
+  },
+};
+
+export const Error: Story = {
+  args: {
+    "aria-label": "Invalid email input",
+    "aria-invalid": true,
+    defaultValue: "invalid-email",
+  },
+};
+
+export const Empty: Story = {
+  args: {
+    "aria-label": "Empty input",
+    placeholder: "Enter a value",
+    defaultValue: "",
   },
 };

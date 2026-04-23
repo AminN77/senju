@@ -27,9 +27,7 @@ This file tracks **direct** runtime and development dependencies used by the `fr
 | `@axe-core/playwright` | 4.11.2 | MPL-2.0 | dev |
 | `@playwright/test` | 1.59.1 | Apache-2.0 | dev |
 | `@storybook/addon-a11y` | 10.3.5 | MIT | dev |
-| `@storybook/addon-interactions` | 8.6.14 | MIT | dev |
 | `@storybook/addon-themes` | 10.3.5 | MIT | dev |
-| `@storybook/addon-viewport` | 9.0.8 | MIT | dev |
 | `@storybook/nextjs` | 10.3.5 | MIT | dev |
 | `@storybook/react` | 10.3.5 | MIT | dev |
 | `autoprefixer` | 10.5.0 | MIT | dev |
