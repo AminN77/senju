@@ -16,5 +16,5 @@ export function render(
 ): RenderResult {
   document.documentElement.setAttribute("data-theme", theme);
 
-  return rtlRender(<div data-theme={theme}>{ui}</div>, options);
+  return rtlRender(ui, options);
 }
