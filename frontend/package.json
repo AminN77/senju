@@ -24,6 +24,8 @@
     "test:changed": "node ./scripts/test-changed.mjs",
     "hooks:install": "node ./scripts/install-git-hooks.mjs",
     "hooks:precommit": "node ./scripts/run-frontend-precommit.mjs",
+    "codegen": "openapi-typescript ../backend/openapi/openapi.yaml -o src/lib/api/generated/schema.ts",
+    "codegen:check": "pnpm codegen && git diff --exit-code -- src/lib/api/generated/schema.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -45,9 +47,11 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
     "next": "16.2.4",
+    "openapi-fetch": "^0.17.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "tailwind-merge": "^3.5.0"
+    "tailwind-merge": "^3.5.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.2",
@@ -73,6 +77,7 @@
     "jest-axe": "^10.0.0",
     "jsdom": "^29.0.2",
     "lint-staged": "^16.4.0",
+    "openapi-typescript": "^7.13.0",
     "postcss": "^8.5.10",
     "prettier": "^3.8.3",
     "shadcn": "^4.4.0",

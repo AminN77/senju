@@ -61,6 +61,23 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+  codegen-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Enforce OpenAPI codegen drift
+        run: pnpm codegen:check
+
   test:
     runs-on: ubuntu-latest
     steps:
