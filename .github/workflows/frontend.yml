@@ -24,14 +24,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
       - uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.nvmrc
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.1
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Lint + format checks
@@ -41,14 +41,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
       - uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.nvmrc
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.1
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Typecheck
@@ -58,14 +58,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
       - uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.nvmrc
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.1
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Unit tests
@@ -75,14 +75,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
       - uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.nvmrc
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.1
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build app
@@ -92,14 +92,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
       - uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.nvmrc
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.1
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build app
@@ -111,14 +111,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
       - uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.nvmrc
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.1
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
@@ -130,14 +130,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.1
       - uses: actions/setup-node@v4
         with:
           node-version-file: frontend/.nvmrc
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.1
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
