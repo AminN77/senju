@@ -34,3 +34,29 @@ pnpm typecheck
 pnpm test
 pnpm test:contrast
 ```
+
+## Pre-commit hooks
+
+This repo uses a root git hook (`.githooks/pre-commit`) to provide fast local feedback.
+
+### One-time setup
+
+From `frontend/`, run:
+
+```bash
+pnpm hooks:install
+```
+
+This configures `core.hooksPath` to the committed `.githooks/` directory.
+
+### What runs on commit
+
+- If staged files are only outside `frontend/**`, frontend hooks are skipped.
+- If staged files include `frontend/**`, the hook runs:
+  - `lint-staged` (ESLint + Prettier on staged files)
+  - `pnpm typecheck`
+  - `pnpm test:changed` (Vitest related mode for staged source changes)
+
+### Bypass
+
+`git commit --no-verify` bypasses hooks. Use it only for emergency/unblocking workflows (for example, temporarily committing WIP to recover from a local environment failure). Do **not** use it to bypass legitimate lint/type/test failures.
