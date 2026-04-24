@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -35,6 +36,7 @@ export function SessionProvider({
   bootstrap?: boolean;
 }) {
   const authClient = useMemo(() => createApiClient(), []);
+  const authRequestVersion = useRef(0);
 
   const [session, setSession] = useState<SessionState>({
     user: null,
@@ -59,12 +61,18 @@ export function SessionProvider({
   }, []);
 
   const refresh = useCallback(async () => {
+    const requestVersion = ++authRequestVersion.current;
+
     try {
       const result = await authClient.POST("/v1/auth/refresh", {
         credentials: "include",
         headers: { "content-type": "application/json" },
         cache: "no-store",
       });
+
+      if (requestVersion !== authRequestVersion.current) {
+        return;
+      }
 
       if (result.error || !result.data) {
         clearSession();
@@ -73,17 +81,25 @@ export function SessionProvider({
 
       applyAuthenticatedSession(result.data);
     } catch {
+      if (requestVersion !== authRequestVersion.current) {
+        return;
+      }
       clearSession();
     }
   }, [applyAuthenticatedSession, authClient, clearSession]);
 
   const signIn = useCallback(
     async (input: SignInInput) => {
+      const requestVersion = ++authRequestVersion.current;
       const result = await authClient.POST("/v1/auth/login", {
         body: input,
         credentials: "include",
         headers: { "content-type": "application/json" },
       });
+
+      if (requestVersion !== authRequestVersion.current) {
+        return;
+      }
 
       if (result.error || !result.data) {
         clearSession();
@@ -96,6 +112,7 @@ export function SessionProvider({
   );
 
   const signOut = useCallback(async () => {
+    authRequestVersion.current += 1;
     try {
       await authClient.POST("/v1/auth/logout", {
         credentials: "include",
