@@ -1,13 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import type { components } from "@/lib/api/generated/schema";
 import type { SessionUser } from "./types";
 
 const AUTH_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
 
-interface SessionResponse {
-  user: SessionUser;
-}
+type SessionResponse = components["schemas"]["AuthSessionUserResponse"];
 
 interface RequireSessionOptions {
   getCookieHeader?: () => Promise<string>;
@@ -31,7 +30,7 @@ export async function requireSession(
   });
 
   if (response.status === 401) {
-    redirectImpl(buildLoginRedirect(currentPath));
+    return redirectImpl(buildLoginRedirect(currentPath));
   }
 
   if (!response.ok) {

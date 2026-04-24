@@ -10,12 +10,12 @@ import {
   type ReactNode,
 } from "react";
 
+import { createApiClient } from "@/lib/api/client";
+import type { components } from "@/lib/api/generated/schema";
+
 import type { SessionEnvelope, SessionState, SessionUser } from "./types";
 
-interface SignInInput {
-  email: string;
-  password: string;
-}
+type SignInInput = components["schemas"]["AuthLoginRequest"];
 
 interface SessionContextValue {
   user: SessionUser | null;
@@ -27,8 +27,6 @@ interface SessionContextValue {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-const AUTH_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080";
-
 export function SessionProvider({
   children,
   bootstrap = true,
@@ -36,6 +34,8 @@ export function SessionProvider({
   children: ReactNode;
   bootstrap?: boolean;
 }) {
+  const authClient = useMemo(() => createApiClient(), []);
+
   const [session, setSession] = useState<SessionState>({
     user: null,
     accessToken: null,
@@ -59,53 +59,52 @@ export function SessionProvider({
   }, []);
 
   const refresh = useCallback(async () => {
-    const response = await fetch(`${AUTH_BASE_URL}/v1/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "content-type": "application/json" },
-      cache: "no-store",
-    });
+    try {
+      const result = await authClient.POST("/v1/auth/refresh", {
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        cache: "no-store",
+      });
 
-    if (!response.ok) {
+      if (result.error || !result.data) {
+        clearSession();
+        return;
+      }
+
+      applyAuthenticatedSession(result.data);
+    } catch {
       clearSession();
-      return;
     }
-
-    const payload = (await response.json()) as SessionEnvelope;
-    applyAuthenticatedSession(payload);
-  }, [applyAuthenticatedSession, clearSession]);
+  }, [applyAuthenticatedSession, authClient, clearSession]);
 
   const signIn = useCallback(
     async (input: SignInInput) => {
-      const response = await fetch(`${AUTH_BASE_URL}/v1/auth/login`, {
-        method: "POST",
+      const result = await authClient.POST("/v1/auth/login", {
+        body: input,
         credentials: "include",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(input),
       });
 
-      if (!response.ok) {
+      if (result.error || !result.data) {
         clearSession();
         throw new Error("Authentication failed");
       }
 
-      const payload = (await response.json()) as SessionEnvelope;
-      applyAuthenticatedSession(payload);
+      applyAuthenticatedSession(result.data);
     },
-    [applyAuthenticatedSession, clearSession]
+    [applyAuthenticatedSession, authClient, clearSession]
   );
 
   const signOut = useCallback(async () => {
     try {
-      await fetch(`${AUTH_BASE_URL}/v1/auth/logout`, {
-        method: "POST",
+      await authClient.POST("/v1/auth/logout", {
         credentials: "include",
         headers: { "content-type": "application/json" },
       });
     } finally {
       clearSession();
     }
-  }, [clearSession]);
+  }, [authClient, clearSession]);
 
   useEffect(() => {
     if (!bootstrap) {

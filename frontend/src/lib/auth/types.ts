@@ -1,10 +1,8 @@
+import type { components } from "@/lib/api/generated/schema";
+
 export type SessionStatus = "loading" | "authenticated" | "unauthenticated";
 
-export interface SessionUser {
-  id: string;
-  email: string;
-  role: "uploader" | "runner" | "analyst" | "admin";
-}
+export type SessionUser = components["schemas"]["AuthUser"];
 
 export interface SessionState {
   user: SessionUser | null;
@@ -12,7 +10,4 @@ export interface SessionState {
   status: SessionStatus;
 }
 
-export interface SessionEnvelope {
-  user: SessionUser;
-  access_token: string;
-}
+export type SessionEnvelope = components["schemas"]["AuthSessionResponse"];
