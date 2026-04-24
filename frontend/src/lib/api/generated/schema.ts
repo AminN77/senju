@@ -169,6 +169,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/settings/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update user UI preferences */
+        post: operations["postSettingsPreferences"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/jobs/fastq-upload/metadata": {
         parameters: {
             query?: never;
@@ -430,6 +447,14 @@ export interface components {
         };
         AuthSessionUserResponse: {
             user: components["schemas"]["AuthUser"];
+        };
+        SettingsPreferencesRequest: {
+            /** @enum {string} */
+            theme: "light" | "dark";
+        };
+        SettingsPreferencesResponse: {
+            /** @enum {string} */
+            theme: "light" | "dark";
         };
         VersionInfo: {
             /** @example senju-api */
@@ -872,6 +897,39 @@ export interface operations {
                 };
             };
             /** @description No active authenticated session */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    postSettingsPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsPreferencesRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated preferences */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsPreferencesResponse"];
+                };
+            };
+            /** @description Unauthenticated request */
             401: {
                 headers: {
                     [name: string]: unknown;

@@ -21,6 +21,7 @@ export function AuthenticatedShell({ children }: { children: ReactNode }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [shortcutOpen, setShortcutOpen] = useState(false);
   const liveRegionRef = useRef<HTMLDivElement>(null);
+  const pendingChordListenerRef = useRef<((event: KeyboardEvent) => void) | null>(null);
   const pathname = usePathname() ?? "/dashboard";
   const router = useRouter();
   const session = useSession();
@@ -38,12 +39,16 @@ export function AuthenticatedShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const heading = document.querySelector("main h1");
+    let announcement = document.title || "page";
+
     if (heading instanceof HTMLElement) {
       heading.tabIndex = -1;
       heading.focus();
-      if (liveRegionRef.current) {
-        liveRegionRef.current.textContent = `Navigated to ${heading.textContent ?? "page"}`;
-      }
+      announcement = heading.textContent?.trim() || announcement;
+    }
+
+    if (liveRegionRef.current) {
+      liveRegionRef.current.textContent = `Navigated to ${announcement}`;
     }
   }, [pathname]);
 
@@ -77,19 +82,31 @@ export function AuthenticatedShell({ children }: { children: ReactNode }) {
       }
 
       if (event.key.toLowerCase() === "g") {
+        if (pendingChordListenerRef.current) {
+          window.removeEventListener("keydown", pendingChordListenerRef.current);
+        }
+
         const onNext = (nextEvent: KeyboardEvent) => {
           const destination = shortcutRouteMap[nextEvent.key.toLowerCase()];
           if (destination) {
             router.push(destination);
           }
           window.removeEventListener("keydown", onNext);
+          pendingChordListenerRef.current = null;
         };
+        pendingChordListenerRef.current = onNext;
         window.addEventListener("keydown", onNext, { once: true });
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      if (pendingChordListenerRef.current) {
+        window.removeEventListener("keydown", pendingChordListenerRef.current);
+        pendingChordListenerRef.current = null;
+      }
+    };
   }, [router]);
 
   return (

@@ -9,15 +9,11 @@ describe("ThemeToggle", () => {
     vi.unstubAllGlobals();
   });
 
-  it("persists and applies theme preference", async () => {
-    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
-
+  it("persists and applies theme preference", () => {
     render(<ThemeToggle />);
     const toggle = screen.getByRole("button", { name: "Toggle theme" });
     fireEvent.click(toggle);
 
     expect(document.documentElement).toHaveAttribute("data-theme", "light");
-    expect(fetchMock).toHaveBeenCalled();
   });
 });

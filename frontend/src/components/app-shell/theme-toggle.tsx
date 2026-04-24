@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { createApiClient } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 
 type ThemeName = "light" | "dark";
 
 const STORAGE_KEY = "senju:theme-preference";
+const apiClient = createApiClient();
 
 interface ThemeToggleProps {
   compact?: boolean;
@@ -28,10 +30,9 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
 
   const persistPreference = useCallback(async (nextTheme: ThemeName) => {
     try {
-      await fetch("/settings/preferences", {
-        method: "POST",
+      await apiClient.POST("/v1/settings/preferences", {
+        body: { theme: nextTheme },
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ theme: nextTheme }),
       });
     } catch {
       const storage = getStorage();
@@ -74,10 +75,18 @@ function getStorage(): Storage | null {
     return null;
   }
 
-  const candidate = window.localStorage;
-  if (!candidate || typeof candidate.getItem !== "function" || typeof candidate.setItem !== "function") {
+  try {
+    const candidate = window.localStorage;
+    if (
+      !candidate ||
+      typeof candidate.getItem !== "function" ||
+      typeof candidate.setItem !== "function"
+    ) {
+      return null;
+    }
+
+    return candidate;
+  } catch {
     return null;
   }
-
-  return candidate;
 }

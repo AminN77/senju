@@ -73,28 +73,28 @@ export function AppTopBar({
             </Button>
             {menuOpen ? (
               <div className="absolute right-0 mt-2 w-44 rounded-md border border-border-default bg-surface-raised p-2 shadow-1">
-              <Link
-                href="/settings/profile"
-                className="block rounded px-2 py-1 text-body-sm text-text-primary hover:bg-surface-sunken"
-                onClick={() => setMenuOpen(false)}
-              >
-                Profile
-              </Link>
-              <div className="my-1">
-                <ThemeToggle compact />
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start"
-                onClick={() => {
-                  setMenuOpen(false);
-                  void onSignOut();
-                }}
-              >
-                Sign out
-              </Button>
+                <Link
+                  href="/settings/profile"
+                  className="block rounded px-2 py-1 text-body-sm text-text-primary hover:bg-surface-sunken"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Profile
+                </Link>
+                <div className="my-1">
+                  <ThemeToggle compact />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void onSignOut();
+                  }}
+                >
+                  Sign out
+                </Button>
               </div>
             ) : null}
           </div>
