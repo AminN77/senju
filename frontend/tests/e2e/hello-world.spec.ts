@@ -10,6 +10,8 @@ test("hello-world route smoke test renders in both themes", async ({ page }) => 
     await page.evaluate((nextTheme) => {
       document.documentElement.setAttribute("data-theme", nextTheme);
     }, theme);
-    await expect(page.getByRole("button", { name: new RegExp(`Preview ${theme}`, "i") })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: new RegExp(`Preview ${theme}`, "i") })
+    ).toBeVisible();
   }
 });

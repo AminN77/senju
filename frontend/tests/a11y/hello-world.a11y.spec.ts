@@ -12,7 +12,9 @@ test("hello-world route has no wcag21aa violations in both themes", async ({ pag
       document.documentElement.setAttribute("data-theme", nextTheme);
     }, theme);
 
-    const accessibilityScanResults = await new AxeBuilder({ page }).withTags(["wcag21aa"]).analyze();
+    const accessibilityScanResults = await new AxeBuilder({ page })
+      .withTags(["wcag21aa"])
+      .analyze();
     expect(accessibilityScanResults.violations).toEqual([]);
   }
 });

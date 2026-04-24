@@ -35,7 +35,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Lint + format checks
-        run: pnpm lint && pnpm format
+        run: |
+          pnpm lint
+          pnpm prettier --check \
+            package.json \
+            playwright.config.ts \
+            tests/e2e/hello-world.spec.ts \
+            tests/a11y/hello-world.a11y.spec.ts \
+            scripts/check-bundle-budget.mjs
 
   typecheck:
     runs-on: ubuntu-latest

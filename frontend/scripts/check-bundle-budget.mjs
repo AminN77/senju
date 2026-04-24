@@ -2,7 +2,13 @@ import { gzipSync } from "node:zlib";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const CLIENT_REFERENCE_MANIFEST_PATH = join(process.cwd(), ".next", "server", "app", "page_client-reference-manifest.js");
+const CLIENT_REFERENCE_MANIFEST_PATH = join(
+  process.cwd(),
+  ".next",
+  "server",
+  "app",
+  "page_client-reference-manifest.js"
+);
 const BUDGETS = [
   {
     name: "marketing",
@@ -44,7 +50,11 @@ function gzipBytesForFiles(files) {
       continue;
     }
     seen.add(relFile);
-    const absFile = join(process.cwd(), ".next", relFile.startsWith("/") ? relFile.slice(1) : relFile);
+    const absFile = join(
+      process.cwd(),
+      ".next",
+      relFile.startsWith("/") ? relFile.slice(1) : relFile
+    );
     const source = readFileSync(absFile);
     total += gzipSync(source).byteLength;
   }
