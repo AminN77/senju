@@ -60,3 +60,22 @@ This configures `core.hooksPath` to the committed `.githooks/` directory.
 ### Bypass
 
 `git commit --no-verify` bypasses hooks. Use it only for emergency/unblocking workflows (for example, temporarily committing WIP to recover from a local environment failure). Do **not** use it to bypass legitimate lint/type/test failures.
+
+## OpenAPI TypeScript client workflow
+
+- The OpenAPI contract lives in `backend/openapi/openapi.yaml`.
+- Regenerate typed API contracts with:
+
+```bash
+pnpm codegen
+```
+
+- Generated output is committed at `src/lib/api/generated/schema.ts`.
+- CI enforces drift using:
+
+```bash
+pnpm codegen:check
+```
+
+- Runtime API usage should go through `src/lib/api/client.ts` so auth header injection, request IDs, and error normalization stay consistent across call sites.
+- Form/input validation should use schemas in `src/lib/api/schemas.ts` (or colocated schemas) that mirror generated contract types.
