@@ -929,6 +929,15 @@ export interface operations {
                     "application/json": components["schemas"]["SettingsPreferencesResponse"];
                 };
             };
+            /** @description Malformed JSON or invalid preference value */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Unauthenticated request */
             401: {
                 headers: {

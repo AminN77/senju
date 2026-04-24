@@ -178,6 +178,8 @@ paths:
     post:
       tags:
         - Auth
+      security:
+        - bearerAuth: []
       summary: Update user UI preferences
       operationId: postSettingsPreferences
       requestBody:
@@ -193,6 +195,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SettingsPreferencesResponse"
+        "400":
+          description: Malformed JSON or invalid preference value
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
         "401":
           description: Unauthenticated request
           content:
