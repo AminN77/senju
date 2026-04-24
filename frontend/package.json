@@ -21,8 +21,20 @@
     "e2e:ci": "playwright test tests/e2e --project=chromium",
     "a11y": "playwright test tests/a11y --project=chromium",
     "test:bundle-budget": "node ./scripts/check-bundle-budget.mjs",
+    "test:changed": "node ./scripts/test-changed.mjs",
+    "hooks:install": "node ./scripts/install-git-hooks.mjs",
+    "hooks:precommit": "node ./scripts/run-frontend-precommit.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --max-warnings=0 --fix",
+      "prettier --write"
+    ],
+    "*.{css,md}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
@@ -60,6 +72,7 @@
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.0.2",
+    "lint-staged": "^16.4.0",
     "postcss": "^8.5.10",
     "prettier": "^3.8.3",
     "shadcn": "^4.4.0",
