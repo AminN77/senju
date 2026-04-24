@@ -8,11 +8,13 @@ const BUDGETS = [
     name: "marketing",
     maxBytes: 150 * 1024,
     appEntries: ["[project]/src/app/page"],
+    required: true,
   },
   {
     name: "console",
     maxBytes: 250 * 1024,
     appEntries: ["[project]/src/app/dashboard/page", "[project]/src/app/jobs/page"],
+    required: false,
   },
 ];
 
@@ -54,27 +56,32 @@ const manifest = readClientReferenceManifest();
 const failures = [];
 
 for (const budget of BUDGETS) {
-  const matchingEntry = budget.appEntries.find((entry) => {
-    const files = entryFiles(manifest, entry);
-    return files.length > 0;
-  });
+  const matchingEntries = budget.appEntries
+    .map((entry) => ({ entry, files: entryFiles(manifest, entry) }))
+    .filter(({ files }) => files.length > 0);
 
-  if (!matchingEntry) {
+  if (matchingEntries.length === 0) {
+    if (budget.required) {
+      failures.push(`${budget.name} (no matching app entry found)`);
+      continue;
+    }
+
     console.log(`[bundle-budget] skipped '${budget.name}' (no matching app entry found yet)`);
     continue;
   }
 
-  const files = entryFiles(manifest, matchingEntry);
-  const gzippedBytes = gzipBytesForFiles(files);
-  const withinBudget = gzippedBytes <= budget.maxBytes;
-  const status = withinBudget ? "PASS" : "FAIL";
+  for (const { entry, files } of matchingEntries) {
+    const gzippedBytes = gzipBytesForFiles(files);
+    const withinBudget = gzippedBytes <= budget.maxBytes;
+    const status = withinBudget ? "PASS" : "FAIL";
 
-  console.log(
-    `[bundle-budget] ${status} ${budget.name} entry '${matchingEntry}': ${gzippedBytes} bytes gzip (limit ${budget.maxBytes})`
-  );
+    console.log(
+      `[bundle-budget] ${status} ${budget.name} entry '${entry}': ${gzippedBytes} bytes gzip (limit ${budget.maxBytes})`
+    );
 
-  if (!withinBudget) {
-    failures.push(`${budget.name} (${gzippedBytes} > ${budget.maxBytes})`);
+    if (!withinBudget) {
+      failures.push(`${budget.name}:${entry} (${gzippedBytes} > ${budget.maxBytes})`);
+    }
   }
 }
 
