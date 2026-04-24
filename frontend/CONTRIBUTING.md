@@ -79,3 +79,13 @@ pnpm codegen:check
 
 - Runtime API usage should go through `src/lib/api/client.ts` so auth header injection, request IDs, and error normalization stay consistent across call sites.
 - Form/input validation should use schemas in `src/lib/api/schemas.ts` (or colocated schemas) that mirror generated contract types.
+
+## Auth/session baseline
+
+- Session state is centralized in `src/lib/auth/session-provider.tsx`.
+- Access tokens are memory-only in the provider state (never persisted to `localStorage`).
+- Refresh/login/logout are handled via backend endpoints with `credentials: include`, so HTTP-only refresh cookies can be used by the backend.
+- Protected route entry points should use:
+  - server guard: `requireSession()` from `src/lib/auth/session.ts`
+  - client guard: `<RequireSession>` from `src/lib/auth/require-session.tsx`
+- Route-level redirects for authenticated areas are enforced by `frontend/middleware.ts`.

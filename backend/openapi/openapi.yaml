@@ -22,6 +22,8 @@ tags:
     description: Genomic ingestion job metadata (e.g. FASTQ upload tracking)
   - name: Object storage
     description: Presigned multipart uploads to S3-compatible storage (e.g. MinIO) for large objects
+  - name: Auth
+    description: Authentication and session management
 paths:
   /:
     get:
@@ -100,6 +102,78 @@ paths:
             text/plain:
               schema:
                 type: string
+  /v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Authenticate user and issue access token
+      operationId: postAuthLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthLoginRequest"
+      responses:
+        "200":
+          description: Authenticated session payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+  /v1/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token from refresh cookie
+      operationId: postAuthRefresh
+      responses:
+        "200":
+          description: Refreshed session payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionResponse"
+        "401":
+          description: Missing or invalid refresh session
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+  /v1/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Revoke session and clear refresh cookie
+      operationId: postAuthLogout
+      responses:
+        "204":
+          description: Logout completed
+  /v1/auth/session:
+    get:
+      tags:
+        - Auth
+      summary: Resolve current authenticated session
+      operationId: getAuthSession
+      responses:
+        "200":
+          description: Current user session payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSessionUserResponse"
+        "401":
+          description: No active authenticated session
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
   /v1/jobs/fastq-upload/metadata:
     post:
       tags:
@@ -673,6 +747,51 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    AuthUser:
+      type: object
+      required:
+        - id
+        - email
+        - role
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [uploader, runner, analyst, admin]
+    AuthLoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+    AuthSessionResponse:
+      type: object
+      required:
+        - user
+        - access_token
+      properties:
+        user:
+          $ref: "#/components/schemas/AuthUser"
+        access_token:
+          type: string
+    AuthSessionUserResponse:
+      type: object
+      required:
+        - user
+      properties:
+        user:
+          $ref: "#/components/schemas/AuthUser"
     VersionInfo:
       type: object
       required:
