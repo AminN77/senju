@@ -19,13 +19,25 @@ const eslintConfig = defineConfig([
         "error",
         {
           selector:
-            "Literal[value=/\\b(?:bg|text|border|from|to|via)-\\[#(?:[0-9A-Fa-f]{3,8})\\]\\b/]",
+            "Literal[value=/.*(?:bg|text|border|from|to|via)-\\[#(?:[0-9A-Fa-f]{3,8})\\].*/]",
           message:
             "Do not use Tailwind arbitrary color values. Use token-backed utilities (e.g. bg-surface-raised).",
         },
         {
           selector:
-            "TemplateElement[value.raw=/\\b(?:bg|text|border|from|to|via)-\\[#(?:[0-9A-Fa-f]{3,8})\\]\\b/]",
+            "TemplateElement[value.raw=/.*(?:bg|text|border|from|to|via)-\\[#(?:[0-9A-Fa-f]{3,8})\\].*/]",
+          message:
+            "Do not use Tailwind arbitrary color values. Use token-backed utilities (e.g. text-text-primary).",
+        },
+        {
+          selector:
+            "JSXAttribute[name.name='className'] > Literal[value=/.*(?:bg|text|border|from|to|via)-\\[#(?:[0-9A-Fa-f]{3,8})\\].*/]",
+          message:
+            "Do not use Tailwind arbitrary color values. Use token-backed utilities (e.g. bg-surface-raised).",
+        },
+        {
+          selector:
+            "JSXAttribute[name.name='className'] > JSXExpressionContainer > TemplateLiteral > TemplateElement[value.raw=/.*(?:bg|text|border|from|to|via)-\\[#(?:[0-9A-Fa-f]{3,8})\\].*/]",
           message:
             "Do not use Tailwind arbitrary color values. Use token-backed utilities (e.g. text-text-primary).",
         },
