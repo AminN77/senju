@@ -9,7 +9,8 @@ const tokensCss = readFileSync(join(process.cwd(), "src/styles/tokens.css"), "ut
 
 const blockForTheme = (theme: "light" | "dark"): string => {
   if (theme === "light") {
-    const [, lightBlock = ""] = tokensCss.match(/:root\s*\{([\s\S]*?)\}\s*\[data-theme="dark"\]/) ?? [];
+    const [, lightBlock = ""] =
+      tokensCss.match(/:root\s*\{([\s\S]*?)\}\s*\[data-theme="dark"\]/) ?? [];
     return lightBlock;
   }
   const [, darkBlock = ""] = tokensCss.match(/\[data-theme="dark"\]\s*\{([\s\S]*?)\}/) ?? [];
@@ -45,7 +46,60 @@ const parseColor = (value: string, theme: "light" | "dark"): string => {
 };
 
 describe("contrast checks", () => {
+  const tokenValueForTheme = (theme: "light" | "dark", tokenName: string): string => {
+    const themeBlock = blockForTheme(theme);
+    const lightBlock = blockForTheme("light");
+    try {
+      return extractToken(themeBlock, tokenName);
+    } catch {
+      return extractToken(lightBlock, tokenName);
+    }
+  };
+
+  const bodyTextPairs = [
+    ["color-text-primary", "color-surface-base"],
+    ["color-text-primary", "color-surface-raised"],
+    ["color-text-secondary", "color-surface-base"],
+    ["color-text-secondary", "color-surface-raised"],
+    ["color-text-on-inverse", "color-surface-inverse"],
+  ] as const;
+  const nonTextPairs = [
+    ["color-border-focus", "color-surface-base"],
+    ["color-success-solid", "color-surface-base"],
+    ["color-warning-solid", "color-surface-base"],
+    ["color-danger-solid", "color-surface-base"],
+    ["color-info-solid", "color-surface-base"],
+  ] as const;
+
   for (const theme of ["light", "dark"] as const) {
+    it(`ensures ${theme} theme body-text pairings meet 4.5:1 contrast`, () => {
+      const block = blockForTheme(theme);
+
+      for (const [foregroundName, backgroundName] of bodyTextPairs) {
+        const foreground = parseColor(extractToken(block, foregroundName), theme);
+        const background = parseColor(tokenValueForTheme(theme, backgroundName), theme);
+        const contrast = wcagContrast(foreground, background);
+        expect(
+          contrast,
+          `Expected --${foregroundName} contrast ${contrast.toFixed(2)} to be >= 4.50 against --${backgroundName} (${theme})`
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+
+    it(`ensures ${theme} theme non-text pairings meet 3:1 contrast`, () => {
+      const block = blockForTheme(theme);
+
+      for (const [foregroundName, backgroundName] of nonTextPairs) {
+        const foreground = parseColor(extractToken(block, foregroundName), theme);
+        const background = parseColor(extractToken(block, backgroundName), theme);
+        const contrast = wcagContrast(foreground, background);
+        expect(
+          contrast,
+          `Expected --${foregroundName} contrast ${contrast.toFixed(2)} to be >= 3.00 against --${backgroundName} (${theme})`
+        ).toBeGreaterThanOrEqual(3);
+      }
+    });
+
     it(`ensures ${theme} theme data-viz categorical tokens meet 3:1 contrast`, () => {
       const block = blockForTheme(theme);
       const surfaceBase = parseColor(extractToken(block, "color-surface-base"), theme);
