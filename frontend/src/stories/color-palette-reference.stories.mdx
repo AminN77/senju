@@ -1,0 +1,53 @@
+import { Meta } from "@storybook/blocks";
+
+<Meta title="Foundations/Color Palette/Reference" />
+
+# Color Palette Reference
+
+Source of truth: `docs/frontend/color-palette.md` and `src/styles/tokens.css`.
+
+## Brand (OKLCH + hex reference)
+
+- `brand-50`: `oklch(96% 0.02 200)` / `#ecf7f6`
+- `brand-100`: `oklch(92% 0.04 200)` / `#d2ebe9`
+- `brand-200`: `oklch(86% 0.07 200)` / `#a9dad6`
+- `brand-300`: `oklch(78% 0.10 200)` / `#78c3bd`
+- `brand-400`: `oklch(68% 0.13 200)` / `#40a59d`
+- `brand-500`: `oklch(60% 0.14 200)` / `#1f8680`
+- `brand-600`: `oklch(52% 0.13 200)` / `#116b66`
+- `brand-700`: `oklch(44% 0.11 200)` / `#0b544f`
+- `brand-800`: `oklch(36% 0.09 200)` / `#083f3b`
+- `brand-900`: `oklch(28% 0.07 200)` / `#052c29`
+
+## Neutrals (OKLCH + hex reference)
+
+- `neutral-50`: `oklch(98% 0.003 250)` / `#f8f9fb`
+- `neutral-100`: `oklch(96% 0.004 250)` / `#f1f3f6`
+- `neutral-200`: `oklch(92% 0.006 250)` / `#e4e7ec`
+- `neutral-300`: `oklch(85% 0.008 250)` / `#cdd2da`
+- `neutral-400`: `oklch(72% 0.010 250)` / `#a0a7b3`
+- `neutral-500`: `oklch(58% 0.012 250)` / `#74798a`
+- `neutral-600`: `oklch(48% 0.013 250)` / `#595e6d`
+- `neutral-700`: `oklch(38% 0.014 250)` / `#404654`
+- `neutral-800`: `oklch(28% 0.014 250)` / `#282e3a`
+- `neutral-900`: `oklch(20% 0.014 250)` / `#171c27`
+- `neutral-950`: `oklch(14% 0.013 250)` / `#0d1119`
+
+## Semantic (OKLCH reference)
+
+- Success: `success-subtle`, `success-muted`, `success-solid`, `success-solid-hover`, `success-on-solid`, `success-border`
+- Warning: `warning-subtle`, `warning-muted`, `warning-solid`, `warning-solid-hover`, `warning-on-solid`, `warning-border`
+- Danger: `danger-subtle`, `danger-muted`, `danger-solid`, `danger-solid-hover`, `danger-on-solid`, `danger-border`
+- Info: `info-subtle`, `info-muted`, `info-solid`, `info-solid-hover`, `info-on-solid`, `info-border`
+
+## Data-viz (OKLCH reference)
+
+- Categorical: `dv-1` ... `dv-10`
+- Sequential: `dv-seq-1` ... `dv-seq-9`
+- Diverging: `dv-div-cold`, `dv-div-mid`, `dv-div-hot`
+
+## Theme-aware role tokens
+
+- Surface: `surface-base`, `surface-raised`, `surface-overlay`, `surface-sunken`, `surface-inverse`, `surface-brand-subtle`
+- Text: `text-primary`, `text-secondary`, `text-muted`, `text-disabled`, `text-on-brand`, `text-on-inverse`, `text-link`, `text-danger`
+- Border: `border-subtle`, `border-default`, `border-strong`, `border-focus`

@@ -90,7 +90,13 @@
   --color-dv-9: oklch(55% 0.12 100);
   --color-dv-10: oklch(53% 0.12 240);
   --color-dv-seq-1: oklch(96% 0.02 200);
+  --color-dv-seq-2: oklch(90% 0.04 200);
+  --color-dv-seq-3: oklch(84% 0.06 200);
+  --color-dv-seq-4: oklch(72% 0.1 200);
   --color-dv-seq-5: oklch(60% 0.14 200);
+  --color-dv-seq-6: oklch(52% 0.13 200);
+  --color-dv-seq-7: oklch(44% 0.11 200);
+  --color-dv-seq-8: oklch(36% 0.09 200);
   --color-dv-seq-9: oklch(28% 0.07 200);
   --color-dv-div-cold: oklch(62% 0.12 250);
   --color-dv-div-mid: oklch(98% 0.003 250);
@@ -213,24 +219,28 @@
   --color-success-muted: oklch(30% 0.06 150);
   --color-success-solid: oklch(65% 0.15 150);
   --color-success-solid-hover: oklch(70% 0.15 150);
+  --color-success-on-solid: oklch(98% 0.01 150);
   --color-success-border: oklch(40% 0.08 150);
 
   --color-warning-subtle: oklch(22% 0.04 70);
   --color-warning-muted: oklch(30% 0.06 70);
   --color-warning-solid: oklch(68% 0.14 70);
   --color-warning-solid-hover: oklch(73% 0.14 70);
+  --color-warning-on-solid: oklch(98% 0.01 70);
   --color-warning-border: oklch(40% 0.08 70);
 
   --color-danger-subtle: oklch(22% 0.04 25);
   --color-danger-muted: oklch(30% 0.06 25);
   --color-danger-solid: oklch(66% 0.17 25);
   --color-danger-solid-hover: oklch(71% 0.17 25);
+  --color-danger-on-solid: oklch(98% 0.01 25);
   --color-danger-border: oklch(42% 0.1 25);
 
   --color-info-subtle: oklch(22% 0.03 250);
   --color-info-muted: oklch(30% 0.05 250);
   --color-info-solid: oklch(66% 0.12 250);
   --color-info-solid-hover: oklch(71% 0.12 250);
+  --color-info-on-solid: oklch(98% 0.01 250);
   --color-info-border: oklch(40% 0.08 250);
 
   /* Data-viz tokens (dark-tuned for >=3:1 against surface-base) */
@@ -245,7 +255,13 @@
   --color-dv-9: oklch(79% 0.12 100);
   --color-dv-10: oklch(75% 0.12 240);
   --color-dv-seq-1: oklch(97% 0.02 200);
+  --color-dv-seq-2: oklch(92% 0.04 200);
+  --color-dv-seq-3: oklch(88% 0.06 200);
+  --color-dv-seq-4: oklch(82% 0.1 200);
   --color-dv-seq-5: oklch(74% 0.14 200);
+  --color-dv-seq-6: oklch(66% 0.13 200);
+  --color-dv-seq-7: oklch(60% 0.11 200);
+  --color-dv-seq-8: oklch(56% 0.1 200);
   --color-dv-seq-9: oklch(52% 0.11 200);
   --color-dv-div-cold: oklch(78% 0.12 250);
   --color-dv-div-mid: oklch(86% 0.01 250);
