@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 describe("eslint arbitrary color guard", () => {
@@ -16,7 +17,8 @@ describe("eslint arbitrary color guard", () => {
   });
 
   it("blocks Tailwind arbitrary color utilities", () => {
-    const dir = mkdtempSync(join(process.cwd(), "src/styles/.tmp-eslint-"));
+    const here = dirname(fileURLToPath(import.meta.url));
+    const dir = mkdtempSync(join(here, ".tmp-eslint-"));
     tempDirs.push(dir);
 
     const fixturePath = join(dir, "fixture.tsx");
