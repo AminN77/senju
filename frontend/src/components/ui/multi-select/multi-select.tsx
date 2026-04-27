@@ -1,5 +1,6 @@
 "use client";
 
+import type { CheckedState } from "@radix-ui/react-checkbox";
 import * as React from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,7 +28,27 @@ export function MultiSelect({
   onValueChange?: (value: string[]) => void;
   className?: string;
 }) {
-  const selected = new Set(value ?? []);
+  const [internalValue, setInternalValue] = React.useState<string[]>([]);
+  const currentValue = value ?? internalValue;
+  const selected = new Set(currentValue);
+
+  const updateValue = (next: string[]) => {
+    if (value === undefined) {
+      setInternalValue(next);
+    }
+    onValueChange?.(next);
+  };
+
+  const handleCheckedChange = (checked: CheckedState, optionValue: string) => {
+    const next = new Set(selected);
+    if (checked === true) {
+      next.add(optionValue);
+    } else {
+      next.delete(optionValue);
+    }
+    updateValue([...next]);
+  };
+
   return (
     <div className={cn("space-y-2", className)}>
       {options.map((option) => {
@@ -37,15 +58,7 @@ export function MultiSelect({
             <Checkbox
               id={inputId}
               checked={selected.has(option.value)}
-              onCheckedChange={(checked) => {
-                const next = new Set(selected);
-                if (checked) {
-                  next.add(option.value);
-                } else {
-                  next.delete(option.value);
-                }
-                onValueChange?.([...next]);
-              }}
+              onCheckedChange={(checked) => handleCheckedChange(checked, option.value)}
             />
             <Label htmlFor={inputId}>{option.label}</Label>
           </div>

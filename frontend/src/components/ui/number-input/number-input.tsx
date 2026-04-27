@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
  * Use `Input` for non-numeric content.
  * A11y: consumer must provide a visible label or an `aria-label`.
  */
-export const NumberInput = React.forwardRef<HTMLInputElement, React.ComponentProps<typeof Input>>(
-  ({ inputMode = "decimal", ...props }, ref) => {
-    return <Input ref={ref} type="number" inputMode={inputMode} {...props} />;
-  }
-);
+export const NumberInput = React.forwardRef<
+  HTMLInputElement,
+  Omit<React.ComponentProps<typeof Input>, "type">
+>(({ inputMode = "decimal", ...props }, ref) => {
+  return <Input ref={ref} {...props} type="number" inputMode={inputMode} />;
+});
 
 NumberInput.displayName = "NumberInput";
