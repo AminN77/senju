@@ -42,7 +42,8 @@ export const LongContent: Story = {
   render: () => (
     <div className="grid w-full max-w-sm items-center gap-2">
       <Label htmlFor="label-long">
-        Primary contact email for workflow notifications and pipeline failure alerts across all projects
+        Primary contact email for workflow notifications and pipeline failure alerts across all
+        projects
       </Label>
       <Input id="label-long" placeholder="name@senju.dev" />
     </div>
@@ -55,7 +56,8 @@ export const VariantAndSizeNotApplicable: Story = {
       <Label htmlFor="label-na">Email</Label>
       <Input id="label-na" placeholder="name@senju.dev" />
       <p className="text-body-md text-text-secondary">
-        Label does not expose variant or size props; visual variants are owned by composed/domain form components.
+        Label does not expose variant or size props; visual variants are owned by composed/domain
+        form components.
       </p>
     </div>
   ),

@@ -36,7 +36,8 @@ export const LongContent: Story = {
   render: () => (
     <div className="w-full max-w-md space-y-4">
       <p className="text-body-md text-text-primary">
-        FASTQ upload and validation state with extensive explanatory helper text for baseline overflow checks
+        FASTQ upload and validation state with extensive explanatory helper text for baseline
+        overflow checks
       </p>
       <Separator />
       <p className="text-body-md text-text-primary">
@@ -92,7 +93,8 @@ export const ErrorNotApplicable: Story = {
       <Separator />
       <p className="text-body-md text-text-primary">Section B</p>
       <p className="text-body-md text-text-secondary">
-        Separator has no intrinsic error state; error signaling belongs to related form or status components.
+        Separator has no intrinsic error state; error signaling belongs to related form or status
+        components.
       </p>
     </div>
   ),
