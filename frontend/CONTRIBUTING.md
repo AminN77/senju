@@ -80,6 +80,16 @@ pnpm codegen:check
 - Runtime API usage should go through `src/lib/api/client.ts` so auth header injection, request IDs, and error normalization stay consistent across call sites.
 - Form/input validation should use schemas in `src/lib/api/schemas.ts` (or colocated schemas) that mirror generated contract types.
 
+## Typography and font loading
+
+- UI sans font: Inter variable via `next/font/google`.
+- Mono font: JetBrains Mono variable via `next/font/google`.
+- Include `subsets: ["latin", "latin-ext"]` and `display: "swap"` for both font families.
+- Fonts are self-hosted through Next.js font optimization and must not be fetched from Google CDN at runtime.
+- Keep font CSS variable wiring aligned with tokens:
+  - `--font-inter` -> `--font-sans`
+  - `--font-jetbrains-mono` -> `--font-mono`
+
 ## Auth/session baseline
 
 - Session state is centralized in `src/lib/auth/session-provider.tsx`.
