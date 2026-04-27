@@ -63,7 +63,9 @@ describe("core primitives batch 1", () => {
       </Select>
     );
 
-    expect(screen.getByRole("combobox", { name: "Pipeline type" })).toHaveTextContent("Whole Genome");
+    expect(screen.getByRole("combobox", { name: "Pipeline type" })).toHaveTextContent(
+      "Whole Genome"
+    );
   });
 
   it("supports multi-select value changes", async () => {
