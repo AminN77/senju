@@ -1,0 +1,73 @@
+import { Meta } from "@storybook/blocks";
+import { Avatar, AvatarFallback } from "../components/ui/avatar";
+import { Badge } from "../components/ui/badge";
+import { Banner } from "../components/ui/banner";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "../components/ui/breadcrumb";
+import { Callout } from "../components/ui/callout";
+import { Progress } from "../components/ui/progress";
+import { Skeleton } from "../components/ui/skeleton";
+import { Spinner } from "../components/ui/spinner";
+import { StatusDot } from "../components/ui/status-dot";
+import { Tag } from "../components/ui/tag";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+
+<Meta title="Primitives/Batch 2 Overview" />
+
+# Core Primitives Batch 2
+
+Representative previews for overlay/layout primitive additions.
+
+## Feedback + status
+
+<div className="space-y-3">
+  <Banner>Pipeline run submitted successfully.</Banner>
+  <Callout>Callout for explanatory context near advanced controls.</Callout>
+  <div className="flex items-center gap-3">
+    <Badge>Stable</Badge>
+    <Tag>WGS</Tag>
+    <StatusDot tone="success" aria-hidden />
+    <Spinner />
+  </div>
+</div>
+
+## Avatar + progress + skeleton
+
+<div className="mt-4 space-y-3">
+  <Avatar>
+    <AvatarFallback>SN</AvatarFallback>
+  </Avatar>
+  <Progress value={60} />
+  <Skeleton className="h-4 w-48" />
+</div>
+
+## Tabs + breadcrumb
+
+<div className="mt-4 space-y-4">
+  <Tabs defaultValue="overview">
+    <TabsList>
+      <TabsTrigger value="overview">Overview</TabsTrigger>
+      <TabsTrigger value="logs">Logs</TabsTrigger>
+    </TabsList>
+    <TabsContent value="overview">Overview content</TabsContent>
+    <TabsContent value="logs">Logs content</TabsContent>
+  </Tabs>
+
+  <Breadcrumb>
+    <BreadcrumbList>
+      <BreadcrumbItem>
+        <BreadcrumbLink href="#">Projects</BreadcrumbLink>
+      </BreadcrumbItem>
+      <BreadcrumbSeparator />
+      <BreadcrumbItem>
+        <BreadcrumbPage>Run 42</BreadcrumbPage>
+      </BreadcrumbItem>
+    </BreadcrumbList>
+  </Breadcrumb>
+</div>
