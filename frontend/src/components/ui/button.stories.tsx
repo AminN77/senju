@@ -64,7 +64,8 @@ export const LoadingNotApplicable: Story = {
     <div className="space-y-2">
       <Button>Run smoke action</Button>
       <p className="text-body-md text-text-secondary">
-        Button has no built-in loading prop; loading visuals are composed by higher-level domain components.
+        Button has no built-in loading prop; loading visuals are composed by higher-level domain
+        components.
       </p>
     </div>
   ),
@@ -75,7 +76,8 @@ export const ErrorNotApplicable: Story = {
     <div className="space-y-2">
       <Button variant="outline">Run smoke action</Button>
       <p className="text-body-md text-text-secondary">
-        Button has no intrinsic error state; error semantics belong to surrounding form or status UI.
+        Button has no intrinsic error state; error semantics belong to surrounding form or status
+        UI.
       </p>
     </div>
   ),
