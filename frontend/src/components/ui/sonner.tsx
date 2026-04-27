@@ -1,6 +1,7 @@
 "use client";
 
 import { Toaster as Sonner, type ToasterProps } from "sonner";
+import type { CSSProperties } from "react";
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -27,7 +28,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--color-text-primary)",
           "--normal-border": "var(--color-border-default)",
           "--border-radius": "var(--radius-md)",
-        } as React.CSSProperties
+        } as CSSProperties
       }
       toastOptions={{
         classNames: {
